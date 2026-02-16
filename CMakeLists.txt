@@ -9,4 +9,5 @@ target_sources(app PRIVATE
  src/imgdata.c
  src/font8.c
  src/lcd.c
+ src/paint.c
  )
