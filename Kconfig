@@ -1,0 +1,43 @@
+mainmenu "Furrydex"
+
+menu "Display"
+
+config FURRYDEX_EPD_WIDTH
+    int "EPD RAM width"
+    default 128
+    help
+      Set the width of the EPD displays RAM in bits/pixels
+
+config FURRYDEX_EPD_HEIGHT
+    int "EPD RAM height"
+    default 250
+    help
+      Set the height of the EPD displays RAM in bits/pixel
+
+config FURRYDEX_CURSOR_START_X
+    int "EPD ram cursor start X"
+    default 0
+    help
+      Set the start of the EPD RAM cursors X position. Normal value is 0
+
+config FURRYDEX_CURSOR_START_Y
+    int "EPD ram cursor start Y"
+    default 249
+    help
+      Set the start of the EPD RAM cursors Y position. Normal value is HEIGHT-1 or 0
+
+config FURRYDEX_EPD_MAX_BYTES
+    int "EPD bytes per frame buffer" # There's probably a better way to do this... It's just width*height
+    default 4125
+    help
+      The EPD displays maximum bytes per frame buffer. Normal value is the width*height
+
+config FURRYDEX_EPD_DEBUG
+    bool "Debug logging for EPD"
+    default true
+    help
+      Logs extra info: Refresh time, 
+
+endmenu
+
+source "Kconfig.zephyr"

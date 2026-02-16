@@ -1,0 +1,6 @@
+board:
+  name: nrf52840_custom_board
+  full_name: nRF52840_custom_board
+  vendor: nordic
+  socs:
+  - name: nrf52840
