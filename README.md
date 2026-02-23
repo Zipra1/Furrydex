@@ -19,6 +19,7 @@ Currently, this is very early in development. It will be a *while* until its usa
 ## Hardware
 Based on the nRF52 series of microcontrollers.
 I'd like the firmware to run on both nRF52833 and nRF52840, but nRF52833 may be dropped if its limits are reached.
+nRF54L15 may also be considered, since it's Just Better. Only really using nRF52840 right now since it's what I have on hand. (This is looking like the best option, since it has double the processing power of the 52840)
 nRF52 series is chosen due to very low power draw, native NFC, and 2.4GHz radio.
 
 ## Can I buy it?

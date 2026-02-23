@@ -1,43 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# Enable MPU
-CONFIG_ARM_MPU=y
-
-# Enable hardware stack protection
-CONFIG_HW_STACK_PROTECTION=y
-
-# Enable RTT
-CONFIG_USE_SEGGER_RTT=y
-
-# enable GPIO
-CONFIG_GPIO=y
-
-# enable uart driver
-CONFIG_SERIAL=y
-
-# enable console
-CONFIG_CONSOLE=y
-CONFIG_UART_CONSOLE=y
-
 # supermini stuff
 CONFIG_BUILD_OUTPUT_UF2=y
 CONFIG_FLASH_LOAD_OFFSET=0x1000
 
-# usb?
-CONFIG_USB_DEVICE_STACK=y
-CONFIG_USB_CDC_ACM=y
-CONFIG_USB_DEVICE_PID=0x0110
-CONFIG_USB_DEVICE_INITIALIZE_AT_BOOT=y
-CONFIG_UART_INTERRUPT_DRIVEN=y 
-
-CONFIG_USB_DEVICE_MANUFACTURER="Macroplastics"
-CONFIG_USB_DEVICE_PRODUCT="Furrydex"
-
-# display
-CONFIG_SPI=y
-CONFIG_SPI_NRFX=y
-
-# board specific ## todo: move non-board-specific stuff to prj.conf
+# board specific
 CONFIG_FURRYDEX_EPD_WIDTH=128
 CONFIG_FURRYDEX_EPD_HEIGHT=250
 

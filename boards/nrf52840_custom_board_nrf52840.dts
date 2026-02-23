@@ -84,6 +84,10 @@
 	status = "okay";
 };
 
+&gpio1 {
+	status = "okay";
+};
+
 &uart0 {
 	compatible = "nordic,nrf-uarte";
 	status = "disabled";
@@ -107,9 +111,29 @@
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
-	max-frequency = <DT_FREQ_M(25)>;
+	max-frequency = <DT_FREQ_M(40)>;
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";
 	cs-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>; // random unused pin
+};
+
+&spi1 {
+        status = "okay";
+        pinctrl-0 = <&custom_spi>;
+        pinctrl-1 = <&custom_spi>;
+        pinctrl-names = "default", "sleep";
+        cs-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		sdhc0: sdhc@0 {
+                compatible = "zephyr,sdhc-spi-slot";
+                reg = <0>;
+                status = "okay";
+                label = "SDHC_0";
+                mmc {
+						disk-name = "SD";
+                        compatible = "zephyr,sdmmc-disk";
+                        status = "okay";
+                };
+                spi-max-frequency = <24000000>;
+        };
 };

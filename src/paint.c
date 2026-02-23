@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include "font8.h"
 
+// Every function here should be display agnostic. That way, it will be possible to use different types of displays later on.
+
 static inline uint8_t reverse_bits(uint8_t b)
 {
     b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
@@ -34,6 +36,10 @@ void paintCharacter(char character, unsigned char *buf, int translate_width, int
     int stride = 17;
 
     int byteOffset = translate_width / 8;
+    if (byteOffset > 16 || byteOffset < 0) // Not display-agnostic! This needs to be fixed. Should cut off the character, instead of letting it bleed over.
+    {
+        return;
+    }
     int bitShift = translate_width % 8;
 
     for (int i = 0; i < fontHeight; i++)
@@ -69,7 +75,7 @@ void paintText(const char *string, unsigned char *buf, int kerning, int translat
     }
 }
 
-int paintTextWrap(const char *string, unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width)
+int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width, const char *string)
 // This function can overflow into adjacent memory. Add a check that it's not beyond the buffer limits
 {
     int character_width = 5;
@@ -117,9 +123,9 @@ int paintTextWrap(const char *string, unsigned char *buf, int kerning, int trans
     return current_y + line_height;
 }
 
-void invert(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
+void invertRegion(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
 {
-    int stride = buf_w / 8; // Number of bytes per row
+    int stride = (buf_w + 7) / 8; // Number of bytes per row
 
     for (int cur_y = start_y; cur_y < end_y; cur_y++)
     {
@@ -129,6 +135,14 @@ void invert(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, 
             int bit_pos = 7 - (cur_x % 8);
             buf[byte_idx] ^= (1 << bit_pos);
         }
+    }
+}
+
+void invert(uint8_t *buf, size_t size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        buf[i] = ~buf[i];
     }
 }
 

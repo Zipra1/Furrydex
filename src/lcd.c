@@ -25,7 +25,7 @@ static const struct gpio_dt_spec cs = GPIO_DT_SPEC_GET(CS0_NODE, gpios);
 static const struct device *spi_dev = DEVICE_DT_GET(SPI_NODE);
 
 static struct spi_config spi_cfg = {
-    .frequency = 15000000, // 15 MHz
+    .frequency = 40000000, // 40 MHz
     .operation = SPI_OP_MODE_MASTER |
                  SPI_TRANSFER_MSB |
                  SPI_WORD_SET(8) |
@@ -184,6 +184,8 @@ int initDisplay()
 
     sendCommand(0XB2); // Frame Rate Control
     sendData(0X05);    // HPM=16hz ; LPM=8hz
+    // 0x15 for High Frame Rate mode
+    // This should be live configurable. Find out what's going on here
 
     sendCommand(0XB3); // Update Period Gate EQ Control in HPM
     sendData(0XE5);    // Gate EQ on
@@ -252,7 +254,7 @@ int initDisplay()
 
     sendCommand(0x29); // Display on
 
-    sendCommand(0x39); // LPM
+    // sendCommand(0x39); // LPM
 
     k_msleep(120);
     return 0;
@@ -275,7 +277,7 @@ void LCD_Fill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16
 
 void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer) // 2308ms
 {
-    int64_t start_time = k_uptime_get();
+    // int64_t start_time = k_uptime_get();
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
@@ -286,11 +288,11 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 
     LCD_Address_Set(25, 0, 35, 124);
 
-    int64_t duration = k_uptime_get() - start_time;
+    // int64_t duration = k_uptime_get() - start_time;
     gpio_pin_set_dt(&cs, 1);
     spi_write(spi_dev, &spi_cfg, &tx_bufs);
     gpio_pin_set_dt(&cs, 0);
 
-    duration = k_uptime_get() - start_time;
-    printf("LCD frame took: %lld ms\n", duration);
+    // duration = k_uptime_get() - start_time;
+    // printf("LCD frame took: %lld ms\n", duration);
 }
