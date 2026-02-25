@@ -16,6 +16,10 @@ void input_thread_start(void *arg_1, void *arg_2, void *arg_3)
     int8_t inc;
 
     printk("Starting input thread\n");
+    printf("  help | Display this help text\n");
+    printf("reboot | Restart system\n");
+    printf("   dfu | Enter DFU mode\n");
+    printf("  meow | mreooww!\n");
 
     while (1)
     {
@@ -29,10 +33,28 @@ void input_thread_start(void *arg_1, void *arg_2, void *arg_3)
         {
             inc = -1;
         }
+        else if (strcmp(line,"help") == 0) // todo: ifdef and such.
+        {
+            printf("  help | Display this help text\n");
+            printf("reboot | Restart system\n");
+            printf("   dfu | Enter DFU mode\n");
+            printf("  meow | mreooww!\n");
+            return;
+        }
         else if (strcmp(line,"dfu") == 0) // todo: ifdef and such.
         {
             NRF_POWER->GPREGRET = 0x57;
             sys_reboot(SYS_REBOOT_WARM);
+            return;
+        }
+        else if (strcmp(line,"reboot") == 0) // todo: ifdef and such.
+        {
+            sys_reboot(SYS_REBOOT_COLD);
+            return;
+        }
+        else if (strcmp(line,"meow") == 0) // todo: ifdef and such.
+        {
+            printf("mrrp~\n");
             return;
         }
         else

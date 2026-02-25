@@ -286,7 +286,7 @@ int main(void)
             i = -64;
         }
         duration = k_uptime_get() - start_time;
-        printf("Frame took %lld ms\n", duration);
+        //printf("Frame took %lld ms\n", duration);
     }
     return 0;
 }
