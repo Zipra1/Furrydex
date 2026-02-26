@@ -26,7 +26,7 @@ static const char *const blocklist[] = {
  * Zephyr project vendor ID must not be used outside of Zephyr samples.
  */
 USBD_DEVICE_DEFINE(sample_usbd,
-		   DEVICE_DT_GET(DT_NODELABEL(zephyr_udc0)),
+		   DEVICE_DT_GET(DT_ALIAS(zephyr_udc0)),
 		   CONFIG_SAMPLE_USBD_VID, CONFIG_SAMPLE_USBD_PID);
 /* doc device instantiation end */
 
