@@ -108,6 +108,13 @@
     };
 };
 
+// &zephyr_udc0 {
+// 	cdc_acm_uart0 {
+// 		compatible = "zephyr,cdc-acm-uart";
+// 		label = "Zephyr USB CDC-ACM";
+// 	};
+// };
+
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
