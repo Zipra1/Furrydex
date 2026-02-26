@@ -8,7 +8,6 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
-#include <zephyr/console/console.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include "lcd.h"
@@ -18,7 +17,6 @@
 #include "console.h"
 
 #include <zephyr/storage/disk_access.h>
-#include <zephyr/usb/usb_device.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/fs/fs.h>
 #include <ff.h>
@@ -205,7 +203,7 @@ int main(void)
         return 0;
     }
 
-    console_getline_init(); // Initialize console
+    //console_getline_init(); // Initialize console
 
     input_tid = k_thread_create(&input_thread,
                                 input_stack,
