@@ -15,12 +15,12 @@
 #include "font8.h"
 #include "paint.h"
 #include "console.h"
+#include "usb.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
 #include <ff.h>
 
-#include "sample_usbd.h"
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <zephyr/usb/usbd.h>
@@ -214,7 +214,8 @@ static void sample_msg_cb(struct usbd_context *const ctx, const struct usbd_msg 
 static int enable_usb_device_next(void)
 {
 	int err;
-
+    k_msleep(500);
+    // give PC time to connect. This lets us see all logs. I think i'm doing something wrong and this shouldn't be needed, but that's something for me to figure out when I'm more acquainted with Zephyr.
 	sample_usbd = sample_usbd_init_device(sample_msg_cb);
 	if (sample_usbd == NULL) {
 		LOG_ERR("Failed to initialize USB device");
@@ -311,7 +312,7 @@ void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
     int state = 0;
     int32_t sleep_ms;
 
-    printf("Starting blink thread\n");
+    printk("Starting blink thread\n");
 
     while (1)
     {
@@ -325,7 +326,7 @@ void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
         ret = gpio_pin_set_dt(&led, state);
         if (ret < 0)
         { // Printing to terminal within a thread is apparantly not good.
-            printf("Could not toggle LED\n");
+            printk("Could not toggle LED\n");
         }
         k_msleep(sleep_ms);
     }
@@ -357,20 +358,20 @@ int main(void)
 
     k_msleep(100);
 
-	uart_irq_callback_set(uart_dev, interrupt_handler);
+	//uart_irq_callback_set(uart_dev, interrupt_handler);
 	/* Enable rx interrupts */
-	uart_irq_rx_enable(uart_dev);
+	//uart_irq_rx_enable(uart_dev);
 
     if (!gpio_is_ready_dt(&led))
     {
-        printf("Error! GPIO pin not ready\n");
+        printk("Error! GPIO pin not ready\n");
         return 0;
     }
 
     ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0)
     {
-        printf("Error! Could not configure led GPIO pin\n");
+        printk("Error! Could not configure led GPIO pin\n");
         return 0;
     }
 
@@ -400,12 +401,12 @@ int main(void)
 
     if (mount_sd_card())
     {
-        printf("Failed to mount SD card\n");
+        printk("Failed to mount SD card\n");
         return -1;
     }
     else
     {
-        printf("Successfully mounted SD card\n");
+        printk("Successfully mounted SD card\n");
     }
 
     char file_data_buffer[200];
@@ -431,7 +432,7 @@ int main(void)
     fs_close(&data_filp);
 
     initDisplay();
-    printf("Display initialized\n");
+    printk("Display initialized\n");
     int i = -64;
     // int i2 = 0;
     int64_t start_time = k_uptime_get();
@@ -455,7 +456,7 @@ int main(void)
             i = -64;
         }
         duration = k_uptime_get() - start_time;
-        //printf("Frame took %lld ms\n", duration);
+        //printk("Frame took %lld ms\n", duration);
     }
     return 0;
 }
