@@ -16,6 +16,7 @@ LOG_MODULE_REGISTER(usbd_sample_config);
 /* By default, do not register the USB DFU class DFU mode instance. */
 static const char *const blocklist[] = {
 	"dfu_dfu",
+	"msc_0",
 	NULL,
 };
 
@@ -78,6 +79,7 @@ static void sample_fix_code_triple(struct usbd_context *uds_ctx,
 {
 	/* Always use class code information from Interface Descriptors */
 	if (IS_ENABLED(CONFIG_USBD_CDC_ACM_CLASS) ||
+		IS_ENABLED(CONFIG_USBD_MSC_CLASS) ||
 	    IS_ENABLED(CONFIG_USBD_CDC_ECM_CLASS) ||
 	    IS_ENABLED(CONFIG_USBD_CDC_NCM_CLASS) ||
 	    IS_ENABLED(CONFIG_USBD_MIDI2_CLASS) ||

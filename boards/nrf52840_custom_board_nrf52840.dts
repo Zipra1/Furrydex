@@ -103,9 +103,21 @@
 };
 
 &usbd {
-	status = "okay";
-    cdc_acm_uart0: cdc_acm_uart0 {
-        compatible = "zephyr,cdc-acm-uart";
+    status = "okay";
+    usb_device_0: usb_device_0 {
+        compatible = "zephyr,usbd";
+        status = "okay";
+        usb_config_0: usb_config_0 {
+            compatible = "zephyr,usbd-config";
+			
+            cdc_acm_uart0: cdc_acm_uart0 {
+                compatible = "zephyr,cdc-acm-uart";
+            };
+
+            msc_0: msc_0 {
+                compatible = "zephyr,usbd-msc";
+            };
+        };
     };
 };
 
@@ -119,7 +131,7 @@
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
-	max-frequency = <DT_FREQ_M(24)>;
+	max-frequency = <DT_FREQ_M(40)>;
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";

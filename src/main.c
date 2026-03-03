@@ -24,8 +24,10 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <zephyr/usb/usbd.h>
+#include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
-//LOG_MODULE_REGISTER(cdc_acm_echo, LOG_LEVEL_INF); // usb - start
+
+USBD_DEFINE_MSC_LUN(sd_lun, "SD", "Zephyr", "SD_Card", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
