@@ -16,7 +16,6 @@ LOG_MODULE_REGISTER(usbd_sample_config);
 /* By default, do not register the USB DFU class DFU mode instance. */
 static const char *const blocklist[] = {
 	"dfu_dfu",
-	"msc_0",
 	NULL,
 };
 

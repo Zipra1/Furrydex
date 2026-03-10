@@ -415,7 +415,6 @@ int main(void)
     struct fs_file_t data_filp;
     fs_file_t_init(&data_filp);
 
-    char file_ch;
     ret = fs_unlink("/SD:/test_data.txt");
 
     ret = fs_open(&data_filp, "/SD:/test_data.txt", FS_O_WRITE | FS_O_CREATE);
