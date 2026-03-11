@@ -11,4 +11,5 @@ target_sources(app PRIVATE
  src/lcd.c
  src/paint.c
  src/console.c
+ src/usb.c
  )

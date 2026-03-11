@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 void paintCharacter(char character, unsigned char *buf, int translate_width, int translate_height);
-void paintText(const char *string, unsigned char *buf, int kerning, int translate_width, int translate_height);
+void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string);
 int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width, const char *string);
 void invert(uint8_t *buf, size_t size);
 void invertRegion(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y);
