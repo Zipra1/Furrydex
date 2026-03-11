@@ -334,8 +334,6 @@ static int cmd_msc_toggle(const struct shell *sh, size_t argc, char **argv)
 
     if (msc_enabled)
     {
-        // State: unmounted, refcnt=1
-        // Mount for Zephyr, then force-deinit to hide from host
         ret = fs_mount(&mp);
         if (ret)
         {
@@ -349,39 +347,32 @@ static int cmd_msc_toggle(const struct shell *sh, size_t argc, char **argv)
             shell_error(sh, "Failed to deinit disk (%d)", ret);
             return ret;
         }
-        // State: mounted, refcnt=0, host cannot access
         msc_enabled = false;
         shell_print(sh, "Disk mounted to Zephyr, hidden from host");
     }
     else
     {
-        // State: mounted, refcnt=0 (broken from force deinit)
-        // Must reinitialize first before fs_unmount will work
         ret = disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_INIT, NULL);
         if (ret)
         {
             shell_error(sh, "Failed to init disk (%d)", ret);
             return ret;
         }
-        // refcnt now 1, fs_unmount can properly deinit
         ret = fs_unmount(&mp);
         if (ret)
         {
             shell_error(sh, "Failed to unmount (%d)", ret);
             return ret;
         }
-        // refcnt now 0, reinit for host access
         ret = disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_INIT, NULL);
         if (ret)
         {
             shell_error(sh, "Failed to init disk for host (%d)", ret);
             return ret;
         }
-        // State: unmounted, refcnt=1, host can access
         msc_enabled = true;
         shell_print(sh, "Disk unmounted from Zephyr, visible to host");
     }
-    /* disk_access_ioctl seems to work fine to handle only the USB MSC stuff, but handling the fs (un)mounts seems to be difficult alongside it.*/
     return 0;
 }
 

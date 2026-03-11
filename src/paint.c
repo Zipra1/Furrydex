@@ -69,7 +69,8 @@ void paintCharacter(char character, unsigned char *buf, int translate_width, int
 void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string)
 {
     int character_width = 5;
-    for (int i = 0; i < strlen(string); i++)
+    int len = strlen(string);
+    for (int i = 0; i < len; i++)
     {
         paintCharacter(string[i], buf, translate_width + (i * (character_width + kerning)), translate_height);
     }
@@ -222,26 +223,21 @@ void convertBuffer(uint8_t *buffer, uint8_t *target_buffer)
 
     for (uint16_t y = 0; y < height; y += 2)
     {
+        uint16_t row0 = y * stride;
+        uint16_t row1 = (y + 1) * stride;
         for (uint16_t x = 0; x < width; x += 4)
         {
             uint8_t mix = 0;
-
             for (uint8_t col = 0; col < 4; col++)
             {
-                for (uint8_t row = 0; row < 2; row++)
-                {
-                    uint16_t currX = x + col;
-                    uint16_t currY = y + row;
-                    if (currX < width && currY < height)
-                    {
-                        uint8_t pixel = (buffer[currY * stride + (currX >> 3)] >> (7 - (currX & 0x07))) & 0x01;
+                uint16_t currX = x + col;
+                uint8_t byte_offset = currX >> 3;
+                uint8_t bit = 7 - (currX & 0x07);
 
-                        if (pixel)
-                        {
-                            mix |= (1 << (7 - (col * 2 + row)));
-                        }
-                    }
-                }
+                if ((buffer[row0 + byte_offset] >> bit) & 0x01)
+                    mix |= (1 << (7 - col * 2));
+                if ((buffer[row1 + byte_offset] >> bit) & 0x01)
+                    mix |= (1 << (7 - (col * 2 + 1)));
             }
             target_buffer[k++] = mix;
         }
