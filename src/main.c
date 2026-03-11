@@ -26,8 +26,11 @@
 #include <zephyr/usb/usbd.h>
 #include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 
-USBD_DEFINE_MSC_LUN(sd_lun, "SD", "Zephyr", "SD_Card", "1.00");
+#define DISK_NAME "SD"
+
+USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Zephyr", "SD_Card", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
@@ -116,11 +119,11 @@ static int mount_sd_card(void)
     uint32_t block_count;
     uint32_t block_size;
 
-    if (disk_access_init(disk_pdrv) != 0)
-    {
-        LOG_ERR("Storage init ERROR!");
-        return -1;
-    }
+    // if (disk_access_init(disk_pdrv) != 0)
+    // {
+    //     LOG_ERR("Storage init ERROR!");
+    //     return -1;
+    // }
 
     if (disk_access_ioctl(disk_pdrv,
                           DISK_IOCTL_GET_SECTOR_COUNT, &block_count))
@@ -167,15 +170,18 @@ static int mount_sd_card(void)
 // usb start 2
 static inline void print_baudrate(const struct device *dev)
 {
-	uint32_t baudrate;
-	int ret;
+    uint32_t baudrate;
+    int ret;
 
-	ret = uart_line_ctrl_get(dev, UART_LINE_CTRL_BAUD_RATE, &baudrate);
-	if (ret) {
-		LOG_WRN("Failed to get baudrate, ret code %d", ret);
-	} else {
-		LOG_INF("Baudrate %u", baudrate);
-	}
+    ret = uart_line_ctrl_get(dev, UART_LINE_CTRL_BAUD_RATE, &baudrate);
+    if (ret)
+    {
+        LOG_WRN("Failed to get baudrate, ret code %d", ret);
+    }
+    else
+    {
+        LOG_INF("Baudrate %u", baudrate);
+    }
 }
 
 static struct usbd_context *sample_usbd;
@@ -183,122 +189,214 @@ K_SEM_DEFINE(dtr_sem, 0, 1);
 
 static void sample_msg_cb(struct usbd_context *const ctx, const struct usbd_msg *msg)
 {
-	LOG_INF("USBD message: %s", usbd_msg_type_string(msg->type));
+    LOG_INF("USBD message: %s", usbd_msg_type_string(msg->type));
 
-	if (usbd_can_detect_vbus(ctx)) {
-		if (msg->type == USBD_MSG_VBUS_READY) {
-			if (usbd_enable(ctx)) {
-				LOG_ERR("Failed to enable device support");
-			}
-		}
+    if (usbd_can_detect_vbus(ctx))
+    {
+        if (msg->type == USBD_MSG_VBUS_READY)
+        {
+            if (usbd_enable(ctx))
+            {
+                LOG_ERR("Failed to enable device support");
+            }
+        }
 
-		if (msg->type == USBD_MSG_VBUS_REMOVED) {
-			if (usbd_disable(ctx)) {
-				LOG_ERR("Failed to disable device support");
-			}
-		}
-	}
+        if (msg->type == USBD_MSG_VBUS_REMOVED)
+        {
+            if (usbd_disable(ctx))
+            {
+                LOG_ERR("Failed to disable device support");
+            }
+        }
+    }
 
-	if (msg->type == USBD_MSG_CDC_ACM_CONTROL_LINE_STATE) {
-		uint32_t dtr = 0U;
+    if (msg->type == USBD_MSG_CDC_ACM_CONTROL_LINE_STATE)
+    {
+        uint32_t dtr = 0U;
 
-		uart_line_ctrl_get(msg->dev, UART_LINE_CTRL_DTR, &dtr);
-		if (dtr) {
-			k_sem_give(&dtr_sem);
-		}
-	}
+        uart_line_ctrl_get(msg->dev, UART_LINE_CTRL_DTR, &dtr);
+        if (dtr)
+        {
+            k_sem_give(&dtr_sem);
+        }
+    }
 
-	if (msg->type == USBD_MSG_CDC_ACM_LINE_CODING) {
-		print_baudrate(msg->dev);
-	}
+    if (msg->type == USBD_MSG_CDC_ACM_LINE_CODING)
+    {
+        print_baudrate(msg->dev);
+    }
 }
 
 static int enable_usb_device_next(void)
 {
-	int err;
+    int err;
     k_msleep(500);
     // give PC time to connect. This lets us see all logs. I think i'm doing something wrong and this shouldn't be needed, but that's something for me to figure out when I'm more acquainted with Zephyr.
-	sample_usbd = sample_usbd_init_device(sample_msg_cb);
-	if (sample_usbd == NULL) {
-		LOG_ERR("Failed to initialize USB device");
-		return -ENODEV;
-	}
+    sample_usbd = sample_usbd_init_device(sample_msg_cb);
+    if (sample_usbd == NULL)
+    {
+        LOG_ERR("Failed to initialize USB device");
+        return -ENODEV;
+    }
 
-	if (!usbd_can_detect_vbus(sample_usbd)) {
-		err = usbd_enable(sample_usbd);
-		if (err) {
-			LOG_ERR("Failed to enable device support");
-			return err;
-		}
-	}
+    if (!usbd_can_detect_vbus(sample_usbd))
+    {
+        err = usbd_enable(sample_usbd);
+        if (err)
+        {
+            LOG_ERR("Failed to enable device support");
+            return err;
+        }
+    }
 
-	LOG_INF("USB device support enabled");
+    LOG_INF("USB device support enabled");
 
-	return 0;
+    return 0;
 }
 
 static void interrupt_handler(const struct device *dev, void *user_data)
 {
-	ARG_UNUSED(user_data);
+    ARG_UNUSED(user_data);
 
-	while (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
-		if (!rx_throttled && uart_irq_rx_ready(dev)) {
-			int recv_len, rb_len;
-			uint8_t buffer[64];
-			size_t len = MIN(ring_buf_space_get(&ringbuf),
-					 sizeof(buffer));
+    while (uart_irq_update(dev) && uart_irq_is_pending(dev))
+    {
+        if (!rx_throttled && uart_irq_rx_ready(dev))
+        {
+            int recv_len, rb_len;
+            uint8_t buffer[64];
+            size_t len = MIN(ring_buf_space_get(&ringbuf),
+                             sizeof(buffer));
 
-			if (len == 0) {
-				/* Throttle because ring buffer is full */
-				uart_irq_rx_disable(dev);
-				rx_throttled = true;
-				continue;
-			}
+            if (len == 0)
+            {
+                /* Throttle because ring buffer is full */
+                uart_irq_rx_disable(dev);
+                rx_throttled = true;
+                continue;
+            }
 
-			recv_len = uart_fifo_read(dev, buffer, len);
-			if (recv_len < 0) {
-				LOG_ERR("Failed to read UART FIFO");
-				recv_len = 0;
-			};
+            recv_len = uart_fifo_read(dev, buffer, len);
+            if (recv_len < 0)
+            {
+                LOG_ERR("Failed to read UART FIFO");
+                recv_len = 0;
+            };
 
-			rb_len = ring_buf_put(&ringbuf, buffer, recv_len);
-			if (rb_len < recv_len) {
-				LOG_ERR("Drop %u bytes", recv_len - rb_len);
-			}
+            rb_len = ring_buf_put(&ringbuf, buffer, recv_len);
+            if (rb_len < recv_len)
+            {
+                LOG_ERR("Drop %u bytes", recv_len - rb_len);
+            }
 
-			LOG_DBG("tty fifo -> ringbuf %d bytes", rb_len);
-			if (rb_len) {
-				uart_irq_tx_enable(dev);
-			}
-		}
+            LOG_DBG("tty fifo -> ringbuf %d bytes", rb_len);
+            if (rb_len)
+            {
+                uart_irq_tx_enable(dev);
+            }
+        }
 
-		if (uart_irq_tx_ready(dev)) {
-			uint8_t buffer[64];
-			int rb_len, send_len;
+        if (uart_irq_tx_ready(dev))
+        {
+            uint8_t buffer[64];
+            int rb_len, send_len;
 
-			rb_len = ring_buf_get(&ringbuf, buffer, sizeof(buffer));
-			if (!rb_len) {
-				LOG_DBG("Ring buffer empty, disable TX IRQ");
-				uart_irq_tx_disable(dev);
-				continue;
-			}
+            rb_len = ring_buf_get(&ringbuf, buffer, sizeof(buffer));
+            if (!rb_len)
+            {
+                LOG_DBG("Ring buffer empty, disable TX IRQ");
+                uart_irq_tx_disable(dev);
+                continue;
+            }
 
-			if (rx_throttled) {
-				uart_irq_rx_enable(dev);
-				rx_throttled = false;
-			}
+            if (rx_throttled)
+            {
+                uart_irq_rx_enable(dev);
+                rx_throttled = false;
+            }
 
-			send_len = uart_fifo_fill(dev, buffer, rb_len);
-			if (send_len < rb_len) {
-				LOG_ERR("Drop %d bytes", rb_len - send_len);
-			}
+            send_len = uart_fifo_fill(dev, buffer, rb_len);
+            if (send_len < rb_len)
+            {
+                LOG_ERR("Drop %d bytes", rb_len - send_len);
+            }
 
-			LOG_DBG("ringbuf -> tty fifo %d bytes", send_len);
-		}
-	}
-} 
+            LOG_DBG("ringbuf -> tty fifo %d bytes", send_len);
+        }
+    }
+}
 // usb end 2
 
+static bool msc_enabled = false;
+
+static int cmd_msc_toggle(const struct shell *sh, size_t argc, char **argv)
+{
+    int ret;
+
+    if (msc_enabled)
+    {
+        // State: unmounted, refcnt=1
+        // Mount for Zephyr, then force-deinit to hide from host
+        ret = fs_mount(&mp);
+        if (ret)
+        {
+            shell_error(sh, "Failed to mount (%d)", ret);
+            return ret;
+        }
+        bool force = true;
+        ret = disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
+        if (ret)
+        {
+            shell_error(sh, "Failed to deinit disk (%d)", ret);
+            return ret;
+        }
+        // State: mounted, refcnt=0, host cannot access
+        msc_enabled = false;
+        shell_print(sh, "Disk mounted to Zephyr, hidden from host");
+    }
+    else
+    {
+        // State: mounted, refcnt=0 (broken from force deinit)
+        // Must reinitialize first before fs_unmount will work
+        ret = disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_INIT, NULL);
+        if (ret)
+        {
+            shell_error(sh, "Failed to init disk (%d)", ret);
+            return ret;
+        }
+        // refcnt now 1, fs_unmount can properly deinit
+        ret = fs_unmount(&mp);
+        if (ret)
+        {
+            shell_error(sh, "Failed to unmount (%d)", ret);
+            return ret;
+        }
+        // refcnt now 0, reinit for host access
+        ret = disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_INIT, NULL);
+        if (ret)
+        {
+            shell_error(sh, "Failed to init disk for host (%d)", ret);
+            return ret;
+        }
+        // State: unmounted, refcnt=1, host can access
+        msc_enabled = true;
+        shell_print(sh, "Disk unmounted from Zephyr, visible to host");
+    }
+    /* disk_access_ioctl seems to work fine to handle only the USB MSC stuff, but handling the fs (un)mounts seems to be difficult alongside it.*/
+    return 0;
+}
+
+static int cmd_msc_status(const struct shell *sh, size_t argc, char **argv)
+{
+    shell_print(sh, "MSC is %s", msc_enabled ? "enabled (host has disk)" : "disabled (zephyr has disk)");
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(msc_cmds,
+                               SHELL_CMD(toggle, NULL, "Toggle USB mass storage", cmd_msc_toggle),
+                               SHELL_CMD(status, NULL, "Show MSC status", cmd_msc_status),
+                               SHELL_SUBCMD_SET_END);
+
+SHELL_CMD_REGISTER(msc, &msc_cmds, "USB Mass Storage commands", NULL);
 
 // Thread example settings
 
@@ -341,28 +439,30 @@ int main(void)
     k_tid_t input_tid;
     k_tid_t blink_tid; // this is a thread ID. Can be used to do things to the thread.
 
-    if (!device_is_ready(uart_dev)) {
-		LOG_ERR("CDC ACM device not ready");
-		return 0;
-	}
-    
-	ret = enable_usb_device_next();
-	if (ret != 0) {
-		LOG_ERR("Failed to enable USB device support");
-		return 0;
-	}
+    if (!device_is_ready(uart_dev))
+    {
+        LOG_ERR("CDC ACM device not ready");
+        return 0;
+    }
+
+    ret = enable_usb_device_next();
+    if (ret != 0)
+    {
+        LOG_ERR("Failed to enable USB device support");
+        return 0;
+    }
 
     ring_buf_init(&ringbuf, sizeof(ring_buffer), ring_buffer);
 
-	LOG_INF("Wait for DTR");
-	k_sem_take(&dtr_sem, K_FOREVER);
-	LOG_INF("DTR set");
+    LOG_INF("Wait for DTR");
+    k_sem_take(&dtr_sem, K_FOREVER);
+    LOG_INF("DTR set");
 
     k_msleep(100);
 
-	//uart_irq_callback_set(uart_dev, interrupt_handler);
-	/* Enable rx interrupts */
-	//uart_irq_rx_enable(uart_dev);
+    // uart_irq_callback_set(uart_dev, interrupt_handler);
+    /* Enable rx interrupts */
+    // uart_irq_rx_enable(uart_dev);
 
     if (!gpio_is_ready_dt(&led))
     {
@@ -377,7 +477,7 @@ int main(void)
         return 0;
     }
 
-    //console_getline_init(); // Initialize console
+    // console_getline_init(); // Initialize console
 
     input_tid = k_thread_create(&input_thread,
                                 input_stack,
@@ -432,6 +532,10 @@ int main(void)
     ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
     fs_close(&data_filp);
 
+    bool force = true;
+    disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
+    msc_enabled = false;
+
     initDisplay();
     printk("Display initialized\n");
     int i = -64;
@@ -442,7 +546,12 @@ int main(void)
     {
         k_msleep(44);
         start_time = k_uptime_get();
-        paintText("meow! :3", IMAGE_DATA2, 1, 16 + i, 15);
+        if (msc_enabled) {
+            paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Enabled ");
+        } else {
+            paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Disabled");
+        }
+        paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
         // paintCharacter('a', IMAGE_DATA2, i2, 1);
         paintTextWrap(IMAGE_DATA2, 1, 11, 30, 121, "test text");
         convertBuffer(IMAGE_DATA2, output_buffer);
@@ -457,7 +566,7 @@ int main(void)
             i = -64;
         }
         duration = k_uptime_get() - start_time;
-        //printk("Frame took %lld ms\n", duration);
+        // printk("Frame took %lld ms\n", duration);
     }
     return 0;
 }

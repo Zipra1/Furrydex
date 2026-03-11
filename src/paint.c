@@ -66,7 +66,7 @@ void paintCharacter(char character, unsigned char *buf, int translate_width, int
     }
 }
 
-void paintText(const char *string, unsigned char *buf, int kerning, int translate_width, int translate_height)
+void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string)
 {
     int character_width = 5;
     for (int i = 0; i < strlen(string); i++)
