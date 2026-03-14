@@ -22,24 +22,22 @@
 #include <ff.h>
 
 #include <zephyr/drivers/uart.h>
-#include <zephyr/sys/ring_buffer.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+
+#include "lua/lauxlib.h"
+#include "lua/lua.h"
+#include "lua/lualib.h"
+
+lua_State *L;
 
 #define DISK_NAME "SD"
 
 USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Zephyr", "SD_Card", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
-
-#define RING_BUF_SIZE 1024
-uint8_t ring_buffer[RING_BUF_SIZE];
-
-struct ring_buf ringbuf;
-
-static bool rx_throttled; // usb - end
 
 #define SLEEP_TIME_MS 1000
 #define BLINK_THREAD_STACK_SIZE 512 // 256 is the "bare minimum", 512 is small, most threads start at 1024
@@ -407,12 +405,6 @@ int main(void)
         return 0;
     }
 
-    ring_buf_init(&ringbuf, sizeof(ring_buffer), ring_buffer);
-
-    LOG_INF("Wait for DTR");
-    k_sem_take(&dtr_sem, K_FOREVER);
-    LOG_INF("DTR set");
-
     k_msleep(100);
 
     if (!gpio_is_ready_dt(&led))
@@ -477,19 +469,24 @@ int main(void)
     initDisplay();
     printk("Display initialized\n");
     int i = -64;
-    // int i2 = 0;
-    int64_t start_time = k_uptime_get();
-    int64_t duration = k_uptime_get() - start_time;
+    // int64_t start_time = k_uptime_get();
+    // int64_t duration = k_uptime_get() - start_time;
+
+    L = luaL_newstate();
+    luaL_openlibs(L);
+    fflush(stdout);
+
+    printk("Lua initialized\n");
+
     int selected_page_local = 0;
     while (true)
     {
         k_mutex_lock(&blink_mutex, K_FOREVER);
         selected_page_local = selected_page;
         k_mutex_unlock(&blink_mutex);
-        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, 3, selected_page_local);
+        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, 2, selected_page_local);
 
-        k_msleep(44);
-        start_time = k_uptime_get();
+        // start_time = k_uptime_get();
         if (msc_enabled)
         {
             paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Enabled ");
@@ -504,16 +501,16 @@ int main(void)
         convertBuffer(IMAGE_DATA2, output_buffer);
         // invert(output_buffer,138,250,0,0,138,250);
         invert(output_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+        waitForTE();
         Display(25, 0, 36, 125, output_buffer);
         // paintRegion(IMAGE_DATA, 20, 20, 120, 120, 0);
         i++;
-        // i2++;
         if (i > 122)
         {
             i = -64;
         }
-        duration = k_uptime_get() - start_time;
-        // printk("Frame took %lld ms\n", duration);
+        // duration = k_uptime_get() - start_time;
+        //  printk("Frame took %lld ms\n", duration);
     }
     return 0;
 }
