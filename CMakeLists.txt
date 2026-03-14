@@ -7,7 +7,7 @@ project(blinky_custom)
 file(GLOB LUA_SOURCES src/lua/*.c)
 
 target_sources(app PRIVATE
- ${LUA_SOURCES}
+# ${LUA_SOURCES}
  src/main.c
  src/imgdata.c
  src/font8.c

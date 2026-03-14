@@ -5,28 +5,42 @@
 #include <string.h>
 #include "console.h"
 
-K_MUTEX_DEFINE(my_mutex);
+K_MUTEX_DEFINE(blink_mutex);
 
 const int32_t blink_max_ms = 2000;
 const int32_t blink_min_ms = 100;
 int32_t blink_sleep_ms = 500;
 
-void input_thread_start(void *arg_1, void *arg_2, void *arg_3)
+K_MUTEX_DEFINE(page_select_mutex);
+int selected_page = 0;
+
+static int cmd_blink_inc(const struct shell *sh, size_t argc, char **argv)
 {
-    int8_t inc = 0;
-    k_mutex_lock(&my_mutex, K_FOREVER);
-    blink_sleep_ms += (int32_t)inc * 100;
-    if (blink_sleep_ms > blink_max_ms)
-    {
-        blink_sleep_ms = blink_max_ms;
-    }
-    else if (blink_sleep_ms < blink_min_ms)
-    {
-        blink_sleep_ms = blink_min_ms;
-    }
-    k_mutex_unlock(&my_mutex);
-    printf("Updating blink sleep to: %d\n", blink_sleep_ms);
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    k_mutex_lock(&blink_mutex, K_FOREVER);
+    blink_sleep_ms = MIN(blink_sleep_ms + 100, blink_max_ms);
+    k_mutex_unlock(&blink_mutex);
+    shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
+    return 0;
 }
+
+static int cmd_blink_dec(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    k_mutex_lock(&blink_mutex, K_FOREVER);
+    blink_sleep_ms = MAX(blink_sleep_ms - 100, blink_min_ms);
+    k_mutex_unlock(&blink_mutex);
+    shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_blink,
+                               SHELL_CMD(inc, NULL, "Increase blink speed by 100ms", cmd_blink_inc),
+                               SHELL_CMD(dec, NULL, "Decrease blink speed by 100ms", cmd_blink_dec),
+                               SHELL_SUBCMD_SET_END);
+SHELL_CMD_REGISTER(blink, &sub_blink, "Blink speed controls", NULL);
 
 static int cmd_meow(const struct shell *sh, size_t argc, char **argv)
 {
@@ -37,6 +51,7 @@ static int cmd_meow(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+SHELL_CMD_REGISTER(meow, NULL, "Ping but kitty", cmd_meow);
 
 static int cmd_reboot(const struct shell *sh, size_t argc, char **argv)
 {
@@ -46,6 +61,8 @@ static int cmd_reboot(const struct shell *sh, size_t argc, char **argv)
     sys_reboot(SYS_REBOOT_COLD);
     return 0;
 }
+
+SHELL_CMD_REGISTER(reboot, NULL, "Reboot device", cmd_reboot);
 
 static int cmd_dfu(const struct shell *sh, size_t argc, char **argv)
 {
@@ -57,6 +74,4 @@ static int cmd_dfu(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
-SHELL_CMD_REGISTER(meow, NULL, "Ping but kitty", cmd_meow);
-SHELL_CMD_REGISTER(reboot, NULL, "Reboot device", cmd_reboot);
 SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu); // todo: conditionally compile this for different bootloaders

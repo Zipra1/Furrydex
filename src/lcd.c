@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE (CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8)
 #define USE_HORIZONTAL 0
 
 #define DC0_NODE DT_ALIAS(dc0)
@@ -14,8 +13,6 @@
 #define CS0_NODE DT_ALIAS(cs0)
 #define TE0_NODE DT_ALIAS(te0)
 #define SPI_NODE DT_NODELABEL(spi3)
-
-unsigned char previous_frame_buffer[CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8] = {0};
 
 static const struct gpio_dt_spec te = GPIO_DT_SPEC_GET(TE0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);

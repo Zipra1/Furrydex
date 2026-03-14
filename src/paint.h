@@ -14,5 +14,7 @@ void paintLine(unsigned char *buf, int buf_w, int buf_h, int x0, int y0, int x1,
 void paintRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y, int colour);
 void convertBuffer(uint8_t *buffer, uint8_t *target_buffer);
 void FlipBuffer(unsigned char *buf, int physical_width, int height, bool flip_h, bool flip_v);
+void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int cx, int cy, int r, int colour);
+void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int selected_bubble);
 
 #endif
