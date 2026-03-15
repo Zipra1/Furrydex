@@ -8,7 +8,7 @@ Currently, this is very early in development. It will be a *while* until its usa
 - [x] - 122x250 monochrome LCD screen (Should also support e-paper for DIY, since that is more easily accessible.)
 - [ ] - Profiles: A shareable profile able to contain pictures, menus, and programs/files
 - [ ] - Streetpass-like radio: When two furrydexes are near, it will notify both of them. (& if its a saved one or not!)
-- [ ] - NFC (Tap two furrydexes together to "capture" each-others profiles! Or, use it directly with Furscript)
+- [ ] - NFC (Tap two furrydexes together to "capture" each-others profiles! Or, use it directly with Lua)
 - [ ] - Profile browser: Browse through all profiles
 - [ ] - File explorer: Browse files on device and run scripts
 - [ ] - Lua interpreter to make easily shareable programs and interface with external/internal hardware
