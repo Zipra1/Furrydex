@@ -16,6 +16,7 @@
 #include "paint.h"
 #include "console.h"
 #include "usb.h"
+#include "luazephyrlib.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -30,6 +31,7 @@
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include "lua/lualib.h"
+#include "lua_thread.h"
 
 lua_State *L;
 
@@ -49,6 +51,8 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 LOG_MODULE_REGISTER(main);
 
 static int lsdir(const char *path);
+
+extern int luaopen_paint(lua_State *L);
 
 static FATFS fat_fs;
 /* mounting info */
@@ -387,6 +391,14 @@ SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
 
+int lua_sleep_ms(lua_State *L)
+{
+    int ms = (int)luaL_checknumber(L, 1);
+    //printk("Lua mem: %d bytes\n", lua_gc(L, LUA_GCCOUNT, 0) * 1024);
+    k_msleep(ms);
+    return 0;
+}
+
 int main(void)
 {
     int ret;
@@ -427,7 +439,7 @@ int main(void)
                                 NULL,               // arg_1
                                 NULL,               // arg_2
                                 NULL,               // arg_3
-                                8,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
+                                9,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
                                 0,                  // Options, see "Thread Options" in Zephyr. Can use multiple. K_ESSENTIAL treats the end as a fatal system error. K_FP_REGS can help with floating point math(?)
                                 K_NO_WAIT);         // Tels kernel how long to wait before making thread
 
@@ -474,7 +486,13 @@ int main(void)
 
     L = luaL_newstate();
     luaL_openlibs(L);
-    fflush(stdout);
+    luaL_requiref(L, "math", luaopen_math, 1);
+    lua_pop(L, 1);
+    luaL_requiref(L, "paint", luaopen_paint, 1);
+    lua_pop(L, 1);
+
+    lua_pushcfunction(L, lua_sleep_ms);
+    lua_setglobal(L, "sleep_ms");
 
     printk("Lua initialized\n");
 
@@ -484,8 +502,8 @@ int main(void)
         k_mutex_lock(&blink_mutex, K_FOREVER);
         selected_page_local = selected_page;
         k_mutex_unlock(&blink_mutex);
+        k_mutex_lock(&paint_mutex, K_FOREVER);
         paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, 2, selected_page_local);
-
         // start_time = k_uptime_get();
         if (msc_enabled)
         {
@@ -499,7 +517,7 @@ int main(void)
         // paintCharacter('a', IMAGE_DATA2, i2, 1);
         paintTextWrap(IMAGE_DATA2, 1, 11, 30, 121, "test text");
         convertBuffer(IMAGE_DATA2, output_buffer);
-        // invert(output_buffer,138,250,0,0,138,250);
+        k_mutex_unlock(&paint_mutex);
         invert(output_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);

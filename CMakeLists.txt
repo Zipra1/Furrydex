@@ -42,4 +42,5 @@ target_sources(app PRIVATE
     src/paint.c
     src/console.c
     src/usb.c
+    src/lua_thread.c
 )

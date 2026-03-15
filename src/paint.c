@@ -368,3 +368,35 @@ void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int se
         i++;
     }
 }
+
+void blit(uint8_t *dst, int dst_w, int dst_h,
+          const uint8_t *src, int src_w, int src_h,
+          int x, int y)
+{
+    for (int row = 0; row < src_h; row++)
+    {
+        int dst_y = y + row;
+        if (dst_y < 0 || dst_y >= dst_h)
+            continue;
+
+        for (int col = 0; col < src_w; col++)
+        {
+            int dst_x = x + col;
+            if (dst_x < 0 || dst_x >= dst_w)
+                continue;
+
+            // Read source bit
+            int src_byte = (row * ((src_w + 7) / 8)) + (col / 8);
+            int src_bit  = 7 - (col % 8);
+            int pixel = (src[src_byte] >> src_bit) & 1;
+
+            // Write destination bit
+            int dst_byte = (dst_y * ((dst_w + 7) / 8)) + (dst_x / 8);
+            int dst_bit  = 7 - (dst_x % 8);
+            if (pixel)
+                dst[dst_byte] |= (1 << dst_bit);
+            else
+                dst[dst_byte] &= ~(1 << dst_bit);
+        }
+    }
+}

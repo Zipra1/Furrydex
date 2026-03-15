@@ -14,8 +14,55 @@
 #include "lua/lua.h"
 #include <zephyr/storage/disk_access.h>
 
+#include <zephyr/kernel.h>
+
 #include <stdlib.h>
 #include <string.h>
+
+
+///////////////
+///  PAINT  ///
+///////////////
+
+#include "paint.h"
+#include "imgdata.h"
+
+K_MUTEX_DEFINE(paint_mutex);
+
+static int lua_paint_circle(lua_State *L) {
+    int x      = luaL_checknumber(L, 1);
+    int y      = luaL_checknumber(L, 2);
+    int r      = luaL_checknumber(L, 3);
+    int colour = luaL_checknumber(L, 4);
+    // lua_gc(L, LUA_GCCOLLECT, 0);
+    k_mutex_lock(&paint_mutex, K_FOREVER);
+    paintFilledCircle(lua_buffer,
+                      CONFIG_FURRYDEX_EPD_WIDTH,
+                      CONFIG_FURRYDEX_EPD_HEIGHT,
+                      x, y, r, colour);
+    k_mutex_unlock(&paint_mutex);
+    return 0; // no return values pushed to Lua
+}
+
+static int lua_display(lua_State *L) {
+    lua_gc(L, LUA_GCCOLLECT, 0);
+    k_mutex_lock(&paint_mutex, K_FOREVER);
+    memcpy(IMAGE_DATA2, lua_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+    k_mutex_unlock(&paint_mutex);
+    return 0; // no return values pushed to Lua
+}
+
+static const luaL_Reg paint_funcs[] = {
+    {"circle", lua_paint_circle},
+    {"display", lua_display},
+    {NULL, NULL},
+};
+
+LUAMOD_API int luaopen_paint(lua_State *L) {
+    luaL_newlib(L, paint_funcs);
+    return 1;
+}
+
 
 //////////////
 /// BUFFER ///
