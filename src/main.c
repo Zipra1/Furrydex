@@ -16,17 +16,24 @@
 #include "paint.h"
 #include "console.h"
 #include "usb.h"
+#include "luazephyrlib.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
 #include <ff.h>
 
 #include <zephyr/drivers/uart.h>
-#include <zephyr/sys/ring_buffer.h>
 #include <zephyr/usb/usbd.h>
 #include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+
+#include "lua/lauxlib.h"
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua_thread.h"
+
+lua_State *L;
 
 #define DISK_NAME "SD"
 
@@ -34,16 +41,8 @@ USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Zephyr", "SD_Card", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
-#define RING_BUF_SIZE 1024
-uint8_t ring_buffer[RING_BUF_SIZE];
-
-struct ring_buf ringbuf;
-
-static bool rx_throttled; // usb - end
-
 #define SLEEP_TIME_MS 1000
 #define BLINK_THREAD_STACK_SIZE 512 // 256 is the "bare minimum", 512 is small, most threads start at 1024
-#define INPUT_THREAD_STACK_SIZE 512
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
@@ -52,6 +51,8 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 LOG_MODULE_REGISTER(main);
 
 static int lsdir(const char *path);
+
+extern int luaopen_paint(lua_State *L);
 
 static FATFS fat_fs;
 /* mounting info */
@@ -253,77 +254,6 @@ static int enable_usb_device_next(void)
 
     return 0;
 }
-
-static void interrupt_handler(const struct device *dev, void *user_data)
-{
-    ARG_UNUSED(user_data);
-
-    while (uart_irq_update(dev) && uart_irq_is_pending(dev))
-    {
-        if (!rx_throttled && uart_irq_rx_ready(dev))
-        {
-            int recv_len, rb_len;
-            uint8_t buffer[64];
-            size_t len = MIN(ring_buf_space_get(&ringbuf),
-                             sizeof(buffer));
-
-            if (len == 0)
-            {
-                /* Throttle because ring buffer is full */
-                uart_irq_rx_disable(dev);
-                rx_throttled = true;
-                continue;
-            }
-
-            recv_len = uart_fifo_read(dev, buffer, len);
-            if (recv_len < 0)
-            {
-                LOG_ERR("Failed to read UART FIFO");
-                recv_len = 0;
-            };
-
-            rb_len = ring_buf_put(&ringbuf, buffer, recv_len);
-            if (rb_len < recv_len)
-            {
-                LOG_ERR("Drop %u bytes", recv_len - rb_len);
-            }
-
-            LOG_DBG("tty fifo -> ringbuf %d bytes", rb_len);
-            if (rb_len)
-            {
-                uart_irq_tx_enable(dev);
-            }
-        }
-
-        if (uart_irq_tx_ready(dev))
-        {
-            uint8_t buffer[64];
-            int rb_len, send_len;
-
-            rb_len = ring_buf_get(&ringbuf, buffer, sizeof(buffer));
-            if (!rb_len)
-            {
-                LOG_DBG("Ring buffer empty, disable TX IRQ");
-                uart_irq_tx_disable(dev);
-                continue;
-            }
-
-            if (rx_throttled)
-            {
-                uart_irq_rx_enable(dev);
-                rx_throttled = false;
-            }
-
-            send_len = uart_fifo_fill(dev, buffer, rb_len);
-            if (send_len < rb_len)
-            {
-                LOG_ERR("Drop %d bytes", rb_len - send_len);
-            }
-
-            LOG_DBG("ringbuf -> tty fifo %d bytes", send_len);
-        }
-    }
-}
 // usb end 2
 
 static bool msc_enabled = false;
@@ -389,13 +319,11 @@ SHELL_STATIC_SUBCMD_SET_CREATE(msc_cmds,
 
 SHELL_CMD_REGISTER(msc, &msc_cmds, "USB Mass Storage commands", NULL);
 
-// Thread example settings
+// Thread settings
 
 static struct k_thread blink_thread;
-static struct k_thread input_thread;
 
 K_THREAD_STACK_DEFINE(blink_stack, BLINK_THREAD_STACK_SIZE);
-K_THREAD_STACK_DEFINE(input_stack, INPUT_THREAD_STACK_SIZE);
 
 void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
 {
@@ -407,10 +335,9 @@ void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
 
     while (1)
     {
-
-        k_mutex_lock(&my_mutex, K_FOREVER);
+        k_mutex_lock(&blink_mutex, K_FOREVER);
         sleep_ms = blink_sleep_ms; // Locking mutex while using the shared variable
-        k_mutex_unlock(&my_mutex);
+        k_mutex_unlock(&blink_mutex);
 
         state = !state;
 
@@ -424,10 +351,57 @@ void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
 }
 unsigned char output_buffer[CONFIG_FURRYDEX_EPD_MAX_BYTES];
 
+static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc != 5)
+    {
+        shell_error(sh, "Usage: paint circle <x> <y> <r> <c>");
+        return -EINVAL;
+    }
+
+    int x = atoi(argv[1]);
+    int y = atoi(argv[2]);
+    int r = atoi(argv[3]);
+    int c = atoi(argv[4]);
+
+    paintFilledCircle(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, x, y, r, c);
+
+    return 0;
+}
+
+static int cmd_paint_bubbles(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc != 3)
+    {
+        shell_error(sh, "Usage: paint bubbles <num> <selected>");
+        return -EINVAL;
+    }
+
+    int num_bubbles = atoi(argv[1]);
+    int selected_bubble = atoi(argv[2]);
+
+    paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, num_bubbles, selected_bubble);
+
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
+                               SHELL_CMD_ARG(circle, NULL, "Paint a filled circle <x> <y> <r> <c>", cmd_paint_circle, 5, 0),
+                               SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
+                               SHELL_SUBCMD_SET_END);
+SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
+
+int lua_sleep_ms(lua_State *L)
+{
+    int ms = (int)luaL_checknumber(L, 1);
+    //printk("Lua mem: %d bytes\n", lua_gc(L, LUA_GCCOUNT, 0) * 1024);
+    k_msleep(ms);
+    return 0;
+}
+
 int main(void)
 {
     int ret;
-    k_tid_t input_tid;
     k_tid_t blink_tid; // this is a thread ID. Can be used to do things to the thread.
 
     if (!device_is_ready(uart_dev))
@@ -443,17 +417,7 @@ int main(void)
         return 0;
     }
 
-    ring_buf_init(&ringbuf, sizeof(ring_buffer), ring_buffer);
-
-    LOG_INF("Wait for DTR");
-    k_sem_take(&dtr_sem, K_FOREVER);
-    LOG_INF("DTR set");
-
     k_msleep(100);
-
-    // uart_irq_callback_set(uart_dev, interrupt_handler);
-    /* Enable rx interrupts */
-    // uart_irq_rx_enable(uart_dev);
 
     if (!gpio_is_ready_dt(&led))
     {
@@ -468,19 +432,6 @@ int main(void)
         return 0;
     }
 
-    // console_getline_init(); // Initialize console
-
-    input_tid = k_thread_create(&input_thread,
-                                input_stack,
-                                K_THREAD_STACK_SIZEOF(input_stack),
-                                input_thread_start,
-                                NULL,
-                                NULL,
-                                NULL,
-                                7,
-                                0,
-                                K_NO_WAIT);
-
     blink_tid = k_thread_create(&blink_thread, // Thread struct
                                 blink_stack,   // Stack
                                 K_THREAD_STACK_SIZEOF(blink_stack),
@@ -488,7 +439,7 @@ int main(void)
                                 NULL,               // arg_1
                                 NULL,               // arg_2
                                 NULL,               // arg_3
-                                8,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
+                                9,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
                                 0,                  // Options, see "Thread Options" in Zephyr. Can use multiple. K_ESSENTIAL treats the end as a fatal system error. K_FP_REGS can help with floating point math(?)
                                 K_NO_WAIT);         // Tels kernel how long to wait before making thread
 
@@ -530,34 +481,54 @@ int main(void)
     initDisplay();
     printk("Display initialized\n");
     int i = -64;
-    // int i2 = 0;
-    int64_t start_time = k_uptime_get();
-    int64_t duration = k_uptime_get() - start_time;
+    // int64_t start_time = k_uptime_get();
+    // int64_t duration = k_uptime_get() - start_time;
+
+    L = luaL_newstate();
+    luaL_openlibs(L);
+    luaL_requiref(L, "math", luaopen_math, 1);
+    lua_pop(L, 1);
+    luaL_requiref(L, "paint", luaopen_paint, 1);
+    lua_pop(L, 1);
+
+    lua_pushcfunction(L, lua_sleep_ms);
+    lua_setglobal(L, "sleep_ms");
+
+    printk("Lua initialized\n");
+
+    int selected_page_local = 0;
     while (true)
     {
-        k_msleep(44);
-        start_time = k_uptime_get();
-        if (msc_enabled) {
+        k_mutex_lock(&blink_mutex, K_FOREVER);
+        selected_page_local = selected_page;
+        k_mutex_unlock(&blink_mutex);
+        k_mutex_lock(&paint_mutex, K_FOREVER);
+        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_EPD_WIDTH, CONFIG_FURRYDEX_EPD_HEIGHT, 2, selected_page_local);
+        // start_time = k_uptime_get();
+        if (msc_enabled)
+        {
             paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Enabled ");
-        } else {
+        }
+        else
+        {
             paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Disabled");
         }
         paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
         // paintCharacter('a', IMAGE_DATA2, i2, 1);
         paintTextWrap(IMAGE_DATA2, 1, 11, 30, 121, "test text");
         convertBuffer(IMAGE_DATA2, output_buffer);
-        // invert(output_buffer,138,250,0,0,138,250);
+        k_mutex_unlock(&paint_mutex);
         invert(output_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+        waitForTE();
         Display(25, 0, 36, 125, output_buffer);
         // paintRegion(IMAGE_DATA, 20, 20, 120, 120, 0);
         i++;
-        // i2++;
         if (i > 122)
         {
             i = -64;
         }
-        duration = k_uptime_get() - start_time;
-        // printk("Frame took %lld ms\n", duration);
+        // duration = k_uptime_get() - start_time;
+        //  printk("Frame took %lld ms\n", duration);
     }
     return 0;
 }

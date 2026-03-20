@@ -11,5 +11,6 @@ void sendData(uint8_t byte);
 void lcdReset(void);
 void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 void LCD_Fill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16_t color);
+void waitForTE(void);
 
 #endif

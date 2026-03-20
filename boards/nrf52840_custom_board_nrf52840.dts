@@ -38,7 +38,7 @@
 			gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
 		};
 		rst0: rst_0{
-			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>; // previously 0 31
 		};
 		cs0: cs_0{
 			gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
@@ -143,7 +143,7 @@
         pinctrl-0 = <&custom_spi>;
         pinctrl-1 = <&custom_spi>;
         pinctrl-names = "default", "sleep";
-        cs-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+        cs-gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
 		sdhc0: sdhc@0 {
                 compatible = "zephyr,sdhc-spi-slot";
                 reg = <0>;

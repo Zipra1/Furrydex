@@ -11,6 +11,7 @@
     }
     return output_buffer;
 }*/
+#include <zephyr/shell/shell.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -293,6 +294,109 @@ void FlipBuffer(unsigned char *buf, int physical_width, int height, bool flip_h,
                     row[i] = (row[i] << padding_bits) | (next_val >> (8 - padding_bits));
                 }
             }
+        }
+    }
+}
+
+void paintHorizontalLine(uint8_t *buf, int buf_w, int buf_h, int y, int x0, int x1, int colour)
+{
+    if (y < 0 || y >= buf_h)
+        return;
+    if (x0 < 0)
+        x0 = 0;
+    if (x1 >= buf_w)
+        x1 = buf_w - 1;
+    int stride = (buf_w + 7) / 8;
+
+    int byte0 = x0 / 8, bit0 = x0 % 8;
+    int byte1 = x1 / 8, bit1 = x1 % 8;
+    int row = y * stride;
+
+    uint8_t left_mask = 0xFF >> bit0;
+    uint8_t right_mask = 0xFF << (7 - bit1);
+
+    if (byte0 == byte1)
+    {
+        uint8_t mask = left_mask & right_mask;
+        colour ? (buf[row + byte0] |= mask) : (buf[row + byte0] &= ~mask);
+    }
+    else
+    {
+        colour ? (buf[row + byte0] |= left_mask) : (buf[row + byte0] &= ~left_mask);
+        for (int b = byte0 + 1; b < byte1; b++)
+            buf[row + b] = colour ? 0xFF : 0x00;
+        colour ? (buf[row + byte1] |= right_mask) : (buf[row + byte1] &= ~right_mask);
+    }
+}
+
+void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int center_x, int center_y, int radius, int colour)
+{
+    int x = 0;
+    int d = 1 - radius;
+
+    while (x <= radius)
+    {
+        paintHorizontalLine(buf, buf_w, buf_h, center_y + radius, center_x - x, center_x + x, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y - radius, center_x - x, center_x + x, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y + x, center_x - radius, center_x + radius, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y - x, center_x - radius, center_x + radius, colour);
+
+        if (d < 0)
+        {
+            d += 2 * x + 3;
+        }
+        else
+        {
+            d += 2 * (x - radius) + 5;
+            radius--;
+        }
+        x++;
+    }
+}
+
+void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int selected_bubble)
+{
+    int center = 71; // todo: calculate based off kconfig
+    int i = 0;
+    while (i <= num_bubble)
+    {
+        paintFilledCircle(buf, buf_w, buf_h, center+(i*10)-(num_bubble*5), 244, 4, 0);
+        if (i == selected_bubble)
+        {
+            paintFilledCircle(buf, buf_w, buf_h, center+(i*10)-(num_bubble*5), 244, 2, 1);
+        }
+        i++;
+    }
+}
+
+void blit(uint8_t *dst, int dst_w, int dst_h,
+          const uint8_t *src, int src_w, int src_h,
+          int x, int y)
+{
+    for (int row = 0; row < src_h; row++)
+    {
+        int dst_y = y + row;
+        if (dst_y < 0 || dst_y >= dst_h)
+            continue;
+
+        for (int col = 0; col < src_w; col++)
+        {
+            int dst_x = x + col;
+            if (dst_x < 0 || dst_x >= dst_w)
+                continue;
+
+            // Read source bit
+            int src_byte = (row * ((src_w + 7) / 8)) + (col / 8);
+            int src_bit  = 7 - (col % 8);
+            int pixel = (src[src_byte] >> src_bit) & 1;
+
+            // Write destination bit
+            int dst_byte = (dst_y * ((dst_w + 7) / 8)) + (dst_x / 8);
+            int dst_bit  = 7 - (dst_x % 8);
+            if (pixel)
+                dst[dst_byte] |= (1 << dst_bit);
+            else
+                dst[dst_byte] &= ~(1 << dst_bit);
         }
     }
 }

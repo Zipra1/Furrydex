@@ -6,7 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE (CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8)
+/*
+This driver is for a ST7305 display. If you have a display of a different chip, you will need a different driver.
+All you will need is a way to send the frame buffer, as well as configure any hardware-level settings (ex. refresh rate, power mode, anti-tear pin)
+paint.c takes care of actual rendering and is display-agnostic.
+*/
+
 #define USE_HORIZONTAL 0
 
 #define DC0_NODE DT_ALIAS(dc0)
@@ -14,8 +19,6 @@
 #define CS0_NODE DT_ALIAS(cs0)
 #define TE0_NODE DT_ALIAS(te0)
 #define SPI_NODE DT_NODELABEL(spi3)
-
-unsigned char previous_frame_buffer[CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8] = {0};
 
 static const struct gpio_dt_spec te = GPIO_DT_SPEC_GET(TE0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);
@@ -33,6 +36,19 @@ static struct spi_config spi_cfg = {
                  SPI_MODE_CPHA,
     .slave = 0,
 };
+
+static struct gpio_callback te_cb_data;
+static K_SEM_DEFINE(te_sem, 0, 1);
+
+static void te_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    k_sem_give(&te_sem);
+}
+
+void waitForTE(void)
+{
+    k_sem_take(&te_sem, K_FOREVER);
+}
 
 void spi_send_byte(uint8_t byte)
 {
@@ -137,6 +153,15 @@ int initDisplay()
     {
         return 0;
     }
+
+    ret = gpio_pin_interrupt_configure_dt(&te, GPIO_INT_EDGE_RISING);
+    if (ret < 0)
+    {
+        return 0;
+    }
+
+    gpio_init_callback(&te_cb_data, te_isr, BIT(te.pin));
+    gpio_add_callback(te.port, &te_cb_data);
 
     lcdReset();
 
@@ -260,20 +285,20 @@ int initDisplay()
     return 0;
 }
 
-void LCD_Fill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16_t color) // why is this u16?
-//                      5              0             55           200
-{
-    uint16_t i, j;
-    LCD_Address_Set(xsta, ysta, xend - 1, yend - 1); // ������ʾ��Χ
-    for (i = ysta; i < yend; i++)
-    {
-        for (j = xsta; j < xend * 3; j++)
-        {
-            sendData(color);
-            k_msleep(10);
-        }
-    }
-}
+// void LCD_Fill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16_t color) // why is this u16?
+// //                      5              0             55           200
+// {
+//     uint16_t i, j;
+//     LCD_Address_Set(xsta, ysta, xend - 1, yend - 1); // ������ʾ��Χ
+//     for (i = ysta; i < yend; i++)
+//     {
+//         for (j = xsta; j < xend * 3; j++)
+//         {
+//             sendData(color);
+//             k_msleep(10);
+//         }
+//     }
+// }
 
 void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer) // 2308ms
 {

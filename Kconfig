@@ -4,7 +4,7 @@ menu "Display"
 
 config FURRYDEX_EPD_WIDTH
     int "EPD RAM width"
-    default 128
+    default 132
     help
       Set the width of the EPD displays RAM in bits/pixels
 
