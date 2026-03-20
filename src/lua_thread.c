@@ -70,7 +70,7 @@ int lua_thread_start(const struct shell *shell, char *script)
                             K_THREAD_STACK_SIZEOF(lua_stacks[0]),
                             lua_thread_entry,
                             &lua_slots[i], NULL, NULL,
-                            12, 0, K_NO_WAIT);
+                            15, 0, K_NO_WAIT);
             return i;
         }
     }
