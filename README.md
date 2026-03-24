@@ -14,7 +14,7 @@ Currently, this is very early in development. It will be a *while* until its usa
 - [x] - Lua interpreter to make easily shareable programs and interface with external/internal hardware
 - [ ] - Two module ports: 1x internal & 1x external module ports for expanding functionality. Expose GPIOs, power, and SPI bus.
 - [ ] - Infrared transceiver (Easy and cheap to add, so why not)
-- [x] - SD card passthrough, for easy modification/programming and profile making.
+- [ ] - SD card passthrough, for easy modification/programming and profile making.
 
 ## Hardware
 Based on the nRF52 series of microcontrollers.
