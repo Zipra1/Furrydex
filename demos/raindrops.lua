@@ -1,14 +1,16 @@
+local paint = require("paint")
+
 local drops = {}
-local MAX_DROPS = 5
+local MAX_DROPS = 50
 local WIDTH = 132
 local HEIGHT = 250
 
 local function new_drop()
     return {
-        x = math.random(20, WIDTH - 10),
-        y = math.random(10, HEIGHT - 10),
+        x = math.random(30, WIDTH - 20),
+        y = math.random(20, HEIGHT - 20),
         r = 0,
-        max_r = math.random(10, 30)
+        max_r = math.random(2, 20)
     }
 end
 
@@ -38,5 +40,5 @@ while true do
         end
     end
 	paint.display()
-	sleep_ms(50)
+	zephyr.sleep(30)
 end

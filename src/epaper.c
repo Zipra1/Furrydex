@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE (CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8)
+#define BUFFER_SIZE (CONFIG_FURRYDEX_DISPLAY_WIDTH * CONFIG_FURRYDEX_DISPLAY_HEIGHT / 8)
 
 #define DC0_NODE DT_ALIAS(dc0)
 #define RST0_NODE DT_ALIAS(rst0)
@@ -14,7 +14,7 @@
 #define BUSY0_NODE DT_ALIAS(busy0)
 #define SPI_NODE DT_NODELABEL(spi3)
 
-unsigned char previous_frame_buffer[CONFIG_FURRYDEX_EPD_WIDTH * CONFIG_FURRYDEX_EPD_HEIGHT / 8] = {0}; // was in the middle of organizing code. move the rest of this shit to epaper.c thanks
+unsigned char previous_frame_buffer[CONFIG_FURRYDEX_DISPLAY_WIDTH * CONFIG_FURRYDEX_DISPLAY_HEIGHT / 8] = {0}; // was in the middle of organizing code. move the rest of this shit to epaper.c thanks
 
 static const struct gpio_dt_spec busy = GPIO_DT_SPEC_GET(BUSY0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);
@@ -168,8 +168,8 @@ int initDisplay(enum epd_mode mode)
 		k_msleep(10);
 
 		sendCommand(0x01); // Driver output control
-		sendData((CONFIG_FURRYDEX_EPD_HEIGHT - 1) & 0xFF);
-    	sendData(((CONFIG_FURRYDEX_EPD_HEIGHT - 1) >> 8) & 0xFF);
+		sendData((CONFIG_FURRYDEX_DISPLAY_HEIGHT - 1) & 0xFF);
+    	sendData(((CONFIG_FURRYDEX_DISPLAY_HEIGHT - 1) >> 8) & 0xFF);
     	sendData(0x00);			// GD = 0; SM = 0; TB = 0;
 
 		sendCommand(0x11); // data entry mode
@@ -177,7 +177,7 @@ int initDisplay(enum epd_mode mode)
 
 		waitUntilIdle();
 
-		setWindows(0, 0, CONFIG_FURRYDEX_EPD_WIDTH - 1, CONFIG_FURRYDEX_EPD_HEIGHT - 1); // in datasheet, this is doing 0x44 and 0x45
+		setWindows(0, 0, CONFIG_FURRYDEX_DISPLAY_WIDTH - 1, CONFIG_FURRYDEX_DISPLAY_HEIGHT - 1); // in datasheet, this is doing 0x44 and 0x45
 		setCursor(CONFIG_FURRYDEX_CURSOR_START_X, CONFIG_FURRYDEX_CURSOR_START_Y); // wtf. this literally isnt doing anything ??
 
 		sendCommand(0x3C); // BorderWaveform
@@ -215,7 +215,7 @@ void Display(const unsigned char* frame_buffer) // 2308ms
 
 	struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
     };
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
@@ -224,7 +224,7 @@ void Display(const unsigned char* frame_buffer) // 2308ms
 
 	struct spi_buf tx_buf_old = {
 		.buf = (void *)previous_frame_buffer,
-		.len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+		.len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
 	};
     struct spi_buf_set tx_bufs_old = {
 		.buffers = &tx_buf_old,
@@ -300,7 +300,7 @@ void setPartialLUT(uint8_t speed) {
 	sendData(*(EPD_2IN13_V4_LUT_PARTIAL+158));
 }
 
-//static unsigned char scratch_buffer[CONFIG_FURRYDEX_EPD_MAX_BYTES];
+//static unsigned char scratch_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
 
 /* full-partial refresh (broken, probably useless after adding custom luts)
 void create_clean_buffer_static(const unsigned char* old_buffer, 
@@ -320,17 +320,17 @@ void displayFullPartial(const unsigned char* frame_buffer, uint8_t speed) // 106
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
     };
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
         .count = 1
     };
 
-	create_clean_buffer_static(previous_frame_buffer, frame_buffer, scratch_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+	create_clean_buffer_static(previous_frame_buffer, frame_buffer, scratch_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
 	struct spi_buf tx_buf_empty = {
         .buf = (void *)scratch_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
     };
 
     struct spi_buf_set tx_bufs_empty = {
@@ -340,7 +340,7 @@ void displayFullPartial(const unsigned char* frame_buffer, uint8_t speed) // 106
 
 	struct spi_buf tx_buf_old = {
 		.buf = (void *)previous_frame_buffer,
-		.len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+		.len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
 	};
     struct spi_buf_set tx_bufs_old = {
 		.buffers = &tx_buf_old,
@@ -392,7 +392,7 @@ void displayFullPartial(const unsigned char* frame_buffer, uint8_t speed) // 106
     int64_t total_duration = k_uptime_get() - start_time;
     printf("EPD fast refresh took %lld ms\n", total_duration);
 
-    memcpy(previous_frame_buffer, frame_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+    memcpy(previous_frame_buffer, frame_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
 }
 */
 
@@ -402,7 +402,7 @@ void displayPartial(const unsigned char* frame_buffer, uint8_t speed) // 576ms
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
     };
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
@@ -411,7 +411,7 @@ void displayPartial(const unsigned char* frame_buffer, uint8_t speed) // 576ms
 
 	struct spi_buf tx_buf_old = {
 		.buf = (void *)previous_frame_buffer,
-		.len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+		.len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
 	};
     struct spi_buf_set tx_bufs_old = {
 		.buffers = &tx_buf_old,
@@ -471,7 +471,7 @@ void displayPartialSequential(const unsigned char* frame_buffer, uint8_t speed) 
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
     };
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
@@ -480,7 +480,7 @@ void displayPartialSequential(const unsigned char* frame_buffer, uint8_t speed) 
 
 	struct spi_buf tx_buf_old = {
 		.buf = (void *)previous_frame_buffer,
-		.len = CONFIG_FURRYDEX_EPD_MAX_BYTES
+		.len = CONFIG_FURRYDEX_FRAME_BYTES_BUFFER
 	};
     struct spi_buf_set tx_bufs_old = {
 		.buffers = &tx_buf_old,

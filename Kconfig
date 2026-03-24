@@ -2,41 +2,41 @@ mainmenu "Furrydex"
 
 menu "Display"
 
-config FURRYDEX_EPD_WIDTH
+config FURRYDEX_DISPLAY_WIDTH
     int "EPD RAM width"
     default 132
     help
       Set the width of the EPD displays RAM in bits/pixels
 
-config FURRYDEX_EPD_HEIGHT
-    int "EPD RAM height"
+config FURRYDEX_DISPLAY_HEIGHT
+    int "Display memory height"
     default 250
     help
       Set the height of the EPD displays RAM in bits/pixel
 
 config FURRYDEX_CURSOR_START_X
-    int "EPD ram cursor start X"
+    int "Display memory cursor start X"
     default 0
     help
       Set the start of the EPD RAM cursors X position. Normal value is 0
 
 config FURRYDEX_CURSOR_START_Y
-    int "EPD ram cursor start Y"
+    int "Display memory cursor start Y"
     default 249
     help
       Set the start of the EPD RAM cursors Y position. Normal value is HEIGHT-1 or 0
 
-config FURRYDEX_EPD_MAX_BYTES
-    int "EPD bytes per frame buffer" # There's probably a better way to do this... It's just width*height
+config FURRYDEX_FRAME_BYTES_BUFFER
+    int "Size of frame buffers"
+    default 4250
+    help
+      The size of a frame buffer in the MCU's memory
+
+config FURRYDEX_FRAME_BYTES_DISPLAY
+    int "Size of display's memory"
     default 4125
     help
-      The EPD displays maximum bytes per frame buffer. Normal value is the width*height
-
-config FURRYDEX_EPD_DEBUG
-    bool "Debug logging for EPD"
-    default true
-    help
-      Logs extra info: Refresh time, 
+      The number of bytes that the display expects to receive
 
 endmenu
 

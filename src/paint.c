@@ -1,6 +1,6 @@
 /*unsigned char *layerFrames(size_t num_frames, const unsigned char *const frames[])
 {
-    for (int i = 0; i < CONFIG_FURRYDEX_EPD_MAX_BYTES; i++)
+    for (int i = 0; i < CONFIG_FURRYDEX_FRAME_BYTES_BUFFER; i++)
     {
         unsigned char merged_byte = 0xFF; // This can probably be optimized further
         for (size_t j = 0; j < num_frames; j++)
@@ -301,12 +301,33 @@ void FlipBuffer(unsigned char *buf, int physical_width, int height, bool flip_h,
 void paintHorizontalLine(uint8_t *buf, int buf_w, int buf_h, int y, int x0, int x1, int colour)
 {
     if (y < 0 || y >= buf_h)
+    {
+        // printk("paintHorizontalLine @ paint.c: Out of bounds A!!!!!!\n");
         return;
+    }
+    if (x1 < 0 || x0 >= buf_w)
+    {
+        // printk("paintHorizontalLine @ paint.c: Out of bounds B!!!!!!\n");
+        return;
+    }
     if (x0 < 0)
+    {
+        // printk("paintHorizontalLine @ paint.c: Out of bounds C!!!!!!\n");
         x0 = 0;
+    }
     if (x1 >= buf_w)
+    {
+        // printk("paintHorizontalLine @ paint.c: Out of bounds D!!!!!!\n");
         x1 = buf_w - 1;
+    }
+
     int stride = (buf_w + 7) / 8;
+
+    if ((y * stride + x1 / 8) >= CONFIG_FURRYDEX_FRAME_BYTES_BUFFER)
+    {
+        //printk("out of bounds!");
+        return;
+    }
 
     int byte0 = x0 / 8, bit0 = x0 % 8;
     int byte1 = x1 / 8, bit1 = x1 % 8;
@@ -332,14 +353,15 @@ void paintHorizontalLine(uint8_t *buf, int buf_w, int buf_h, int y, int x0, int 
 void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int center_x, int center_y, int radius, int colour)
 {
     int x = 0;
+    int y = radius;
     int d = 1 - radius;
 
-    while (x <= radius)
+    while (x <= y)
     {
-        paintHorizontalLine(buf, buf_w, buf_h, center_y + radius, center_x - x, center_x + x, colour);
-        paintHorizontalLine(buf, buf_w, buf_h, center_y - radius, center_x - x, center_x + x, colour);
-        paintHorizontalLine(buf, buf_w, buf_h, center_y + x, center_x - radius, center_x + radius, colour);
-        paintHorizontalLine(buf, buf_w, buf_h, center_y - x, center_x - radius, center_x + radius, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y + y, center_x - x, center_x + x, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y - y, center_x - x, center_x + x, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y + x, center_x - y, center_x + y, colour);
+        paintHorizontalLine(buf, buf_w, buf_h, center_y - x, center_x - y, center_x + y, colour);
 
         if (d < 0)
         {
@@ -347,8 +369,8 @@ void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int center_x, int cen
         }
         else
         {
-            d += 2 * (x - radius) + 5;
-            radius--;
+            d += 2 * (x - y) + 5;
+            y--;
         }
         x++;
     }
@@ -360,10 +382,10 @@ void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int se
     int i = 0;
     while (i <= num_bubble)
     {
-        paintFilledCircle(buf, buf_w, buf_h, center+(i*10)-(num_bubble*5), 244, 4, 0);
+        paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 4, 0);
         if (i == selected_bubble)
         {
-            paintFilledCircle(buf, buf_w, buf_h, center+(i*10)-(num_bubble*5), 244, 2, 1);
+            paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 2, 1);
         }
         i++;
     }
@@ -387,12 +409,12 @@ void blit(uint8_t *dst, int dst_w, int dst_h,
 
             // Read source bit
             int src_byte = (row * ((src_w + 7) / 8)) + (col / 8);
-            int src_bit  = 7 - (col % 8);
+            int src_bit = 7 - (col % 8);
             int pixel = (src[src_byte] >> src_bit) & 1;
 
             // Write destination bit
             int dst_byte = (dst_y * ((dst_w + 7) / 8)) + (dst_x / 8);
-            int dst_bit  = 7 - (dst_x % 8);
+            int dst_bit = 7 - (dst_x % 8);
             if (pixel)
                 dst[dst_byte] |= (1 << dst_bit);
             else

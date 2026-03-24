@@ -10,6 +10,7 @@
 
 #include <limits.h>
 #include <stddef.h>
+#include <zephyr/kernel.h>
 
 
 /*

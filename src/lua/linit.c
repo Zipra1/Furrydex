@@ -41,17 +41,18 @@
 */
 static const luaL_Reg loadedlibs[] = {
   {LUA_GNAME, luaopen_base},
-  /* {LUA_LOADLIBNAME, luaopen_package}, */
+  {LUA_LOADLIBNAME, luaopen_package},
   {LUA_COLIBNAME, luaopen_coroutine},
   {LUA_TABLIBNAME, luaopen_table},
-  {LUA_IOLIBNAME, luaopen_io},
+  // {LUA_IOLIBNAME, luaopen_io},
   /* {LUA_OSLIBNAME, luaopen_os}, */
   {LUA_STRLIBNAME, luaopen_string},
-  /* {LUA_MATHLIBNAME, luaopen_math}, */
+  {LUA_MATHLIBNAME, luaopen_math},
+  /* {LUA_PAINTLIBNAME, luaopen_paint}, */
   /* {LUA_UTF8LIBNAME, luaopen_utf8}, */
   /* {LUA_DBLIBNAME, luaopen_debug}, */
   {LUA_ZEPHYRLIBNAME, luaopen_zephyr},
-  {LUA_TEENSYLIBNAME, luaopen_teensy},
+  // {LUA_TEENSYLIBNAME, luaopen_teensy}, // probably dont need it!! not on teensy
   {NULL, NULL}
 };
 

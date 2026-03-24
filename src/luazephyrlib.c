@@ -28,6 +28,7 @@
 #include "imgdata.h"
 
 K_MUTEX_DEFINE(paint_mutex);
+K_MUTEX_DEFINE(lua_paint_mutex);
 
 static int lua_paint_circle(lua_State *L) {
     int x      = luaL_checknumber(L, 1);
@@ -35,19 +36,18 @@ static int lua_paint_circle(lua_State *L) {
     int r      = luaL_checknumber(L, 3);
     int colour = luaL_checknumber(L, 4);
     // lua_gc(L, LUA_GCCOLLECT, 0);
-    k_mutex_lock(&paint_mutex, K_FOREVER);
+    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
     paintFilledCircle(lua_buffer,
-                      CONFIG_FURRYDEX_EPD_WIDTH,
-                      CONFIG_FURRYDEX_EPD_HEIGHT,
+                      CONFIG_FURRYDEX_DISPLAY_WIDTH,
+                      CONFIG_FURRYDEX_DISPLAY_HEIGHT,
                       x, y, r, colour);
-    k_mutex_unlock(&paint_mutex);
+    k_mutex_unlock(&lua_paint_mutex);
     return 0; // no return values pushed to Lua
 }
 
 static int lua_display(lua_State *L) {
-    lua_gc(L, LUA_GCCOLLECT, 0);
     k_mutex_lock(&paint_mutex, K_FOREVER);
-    memcpy(IMAGE_DATA2, lua_buffer, CONFIG_FURRYDEX_EPD_MAX_BYTES);
+    memcpy(IMAGE_DATA2, lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
     k_mutex_unlock(&paint_mutex);
     return 0; // no return values pushed to Lua
 }
@@ -63,6 +63,16 @@ LUAMOD_API int luaopen_paint(lua_State *L) {
     return 1;
 }
 
+//////////////
+/// SLEEPS ///
+//////////////
+
+int lua_sleep_ms(lua_State *L)
+{
+    int ms = (int)luaL_checknumber(L, 1);
+    k_msleep(ms);
+    return 0;
+}
 
 //////////////
 /// BUFFER ///
@@ -978,6 +988,7 @@ static const luaL_Reg zephyr_funcs[] = {
   // Raw memory access
   {"peek", lua_peek},
   {"poke", lua_poke},
+  {"sleep", lua_sleep_ms},
   {NULL, NULL},
 };
 

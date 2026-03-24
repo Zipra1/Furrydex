@@ -12,6 +12,8 @@ typedef struct {
     char *script;
     const struct shell *shell;
     bool in_use;
+    bool been_started;
+    char name[16];
 } lua_thread_slot_t;
 
 extern lua_thread_slot_t lua_slots[LUA_MAX_THREADS];

@@ -306,7 +306,7 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
-        .len = CONFIG_FURRYDEX_EPD_MAX_BYTES};
+        .len = CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY};
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
         .count = 1};
