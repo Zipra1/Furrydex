@@ -115,6 +115,10 @@ static int cmd_dfu(const struct shell *sh, size_t argc, char **argv)
 
 SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu); // todo: conditionally compile this for different bootloaders
 
+
+
+// LUA
+
 #include "lua_thread.h"
 
 extern lua_State *L;
@@ -160,7 +164,7 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
         int err = lua_pcall(L, 0, 0, 0);
         if (err)
         {
-            const char *str = luaL_checkstring(L, 1);
+            const char *str = lua_tostring(L, -1);
             if (str)
             {
                 shell_print(shell, "<ERR %i: %s>", err, str);
@@ -185,3 +189,48 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 
 SHELL_CMD_REGISTER(lua, NULL, "Execute lua code", cmd_lua);
 SHELL_CMD_REGISTER(lua_lf, NULL, "Run the given lua file", cmd_lua_loadfile);
+
+
+
+// PAINT
+#include "imgdata.h"
+
+static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc != 5)
+    {
+        shell_error(sh, "Usage: paint circle <x> <y> <r> <c>");
+        return -EINVAL;
+    }
+
+    int x = atoi(argv[1]);
+    int y = atoi(argv[2]);
+    int r = atoi(argv[3]);
+    int c = atoi(argv[4]);
+
+    paintFilledCircle(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, r, c);
+
+    return 0;
+}
+
+static int cmd_paint_bubbles(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc != 3)
+    {
+        shell_error(sh, "Usage: paint bubbles <num> <selected>");
+        return -EINVAL;
+    }
+
+    int num_bubbles = atoi(argv[1]);
+    int selected_bubble = atoi(argv[2]);
+
+    paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_bubbles, selected_bubble);
+
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
+                               SHELL_CMD_ARG(circle, NULL, "Paint a filled circle <x> <y> <r> <c>", cmd_paint_circle, 5, 0),
+                               SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
+                               SHELL_SUBCMD_SET_END);
+SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);

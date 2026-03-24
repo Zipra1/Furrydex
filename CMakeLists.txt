@@ -34,6 +34,7 @@ target_sources(app PRIVATE
     src/lua/lundump.c
     src/lua/lvm.c
     src/lua/lzio.c
+    src/lua/loadlib.c
 
     src/main.c
     src/imgdata.c
@@ -43,4 +44,5 @@ target_sources(app PRIVATE
     src/console.c
     src/usb.c
     src/lua_thread.c
+    src/disk.c
 )

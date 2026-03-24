@@ -38,13 +38,16 @@ LUAMOD_API int (luaopen_utf8) (lua_State *L);
 #define LUA_MATHLIBNAME	"math"
 LUAMOD_API int (luaopen_math) (lua_State *L);
 
+#define LUA_PAINTLIBNAME"paint"
+LUAMOD_API int (luaopen_paint) (lua_State *L);
+
 #define LUA_DBLIBNAME	"debug"
 LUAMOD_API int (luaopen_debug) (lua_State *L);
 
 #define LUA_LOADLIBNAME	"package"
 LUAMOD_API int (luaopen_package) (lua_State *L);
 
-#define LUA_ZEPHYRLIBNAME "z"
+#define LUA_ZEPHYRLIBNAME "zephyr"
 LUAMOD_API int (luaopen_zephyr) (lua_State * L);
 
 #define LUA_TEENSYLIBNAME "teensy"
