@@ -4,8 +4,8 @@
 #include <zephyr/kernel.h>
 #include "lua/lua.h"
 
-#define LUA_MAX_THREADS 4
-#define LUA_THREAD_STACK_SIZE 8192
+#define LUA_MAX_THREADS 7
+#define LUA_THREAD_STACK_SIZE 4096
 
 typedef struct {
     struct k_thread thread;

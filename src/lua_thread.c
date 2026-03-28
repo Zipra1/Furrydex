@@ -119,7 +119,7 @@ int lua_thread_start(const struct shell *shell, char *script)
                             lua_thread_entry,
                             &lua_slots[i], NULL, NULL,
                             K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
-            snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), "Lua %d", i + 1);
+            snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), "Lua %d", i);
             k_thread_name_set(&lua_slots[i].thread, lua_slots[i].name);
             return i;
         }

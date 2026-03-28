@@ -115,8 +115,6 @@ static int cmd_dfu(const struct shell *sh, size_t argc, char **argv)
 
 SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu); // todo: conditionally compile this for different bootloaders
 
-
-
 // LUA
 
 #include "lua_thread.h"
@@ -125,7 +123,8 @@ extern lua_State *L;
 
 void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
 {
-    if (argc != 2) {
+    if (argc != 2)
+    {
         shell_print(shell, "Invalid # of arguments %i", argc);
         return;
     }
@@ -133,7 +132,8 @@ void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
     struct fs_file_t init;
     fs_file_t_init(&init);
 
-    if (0 != fs_open(&init, argv[1], 1)) {
+    if (0 != fs_open(&init, argv[1], 1))
+    {
         shell_print(shell, "Could not open file %s", argv[1]);
         return;
     }
@@ -147,10 +147,13 @@ void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
     fs_close(&init);
 
     int slot = lua_thread_start(shell, script);
-    if (slot < 0) {
+    if (slot < 0)
+    {
         shell_print(shell, "Max concurrent Lua scripts (%d) already running.", LUA_MAX_THREADS);
         free(script);
-    } else {
+    }
+    else
+    {
         shell_print(shell, "Lua script started in slot %d.", slot);
     }
 }
@@ -189,8 +192,6 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 
 SHELL_CMD_REGISTER(lua, NULL, "Execute lua code", cmd_lua);
 SHELL_CMD_REGISTER(lua_lf, NULL, "Run the given lua file", cmd_lua_loadfile);
-
-
 
 // PAINT
 #include "imgdata.h"
@@ -234,3 +235,28 @@ SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
+
+// INFO
+
+static int cmd_info(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    
+    shell_print(sh, "Built %s %s", __DATE__, __TIME__);
+    shell_print(sh, "Board: %s", CONFIG_BOARD);
+
+    int index = 0;
+    const char *name;
+    while (fs_readmount(&index, &name) == 0) {
+        shell_print(sh, "Mount point [%d]: %s", index, name);
+        index++;
+    }
+    if(index == 0){
+        shell_error(sh, "No disks mounted!!!");
+    }
+
+    return 0;
+}
+
+SHELL_CMD_REGISTER(info, NULL, "Print furrydex info to console", cmd_info);

@@ -171,10 +171,14 @@ void blink_thread_start(void *arg_1, void *arg_2, void *arg_3)
     }
 }
 unsigned char output_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
-
 int main(void)
 {
     int ret;
+
+    initDisplay();
+    printk("Display initialized\n");
+
+
 
     if (!device_is_ready(uart_dev))
     {
@@ -191,30 +195,30 @@ int main(void)
 
     k_msleep(100); // is this necessary
 
-    if (!gpio_is_ready_dt(&led))
-    {
-        printk("Error! GPIO pin not ready\n");
-        return 0;
-    }
+    // if (!gpio_is_ready_dt(&led))
+    // {
+    //     printk("Error! GPIO pin not ready\n");
+    //     return 0;
+    // }
 
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-    if (ret < 0)
-    {
-        printk("Error! Could not configure led GPIO pin\n");
-        return 0;
-    }
+    // ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    // if (ret < 0)
+    // {
+    //     printk("Error! Could not configure led GPIO pin\n");
+    //     return 0;
+    // }
     
-    k_tid_t blink_tid; // this is a thread ID. Can be used to do things to the thread.
-    blink_tid = k_thread_create(&blink_thread, // Thread struct
-                                blink_stack,   // Stack
-                                K_THREAD_STACK_SIZEOF(blink_stack),
-                                blink_thread_start, // Entry point (function)
-                                NULL,               // arg_1
-                                NULL,               // arg_2
-                                NULL,               // arg_3
-                                9,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
-                                0,                  // Options, see "Thread Options" in Zephyr. Can use multiple. K_ESSENTIAL treats the end as a fatal system error. K_FP_REGS can help with floating point math(?)
-                                K_NO_WAIT);         // Tels kernel how long to wait before making thread
+    // k_tid_t blink_tid; // this is a thread ID. Can be used to do things to the thread.
+    // blink_tid = k_thread_create(&blink_thread, // Thread struct
+    //                             blink_stack,   // Stack
+    //                             K_THREAD_STACK_SIZEOF(blink_stack),
+    //                             blink_thread_start, // Entry point (function)
+    //                             NULL,               // arg_1
+    //                             NULL,               // arg_2
+    //                             NULL,               // arg_3
+    //                             9,                  // Priority. Lower = more important. There are also negatives, but see zephyr docs for when to use those. (For cooperative and preemptible threads). Main thread has priority 0.
+    //                             0,                  // Options, see "Thread Options" in Zephyr. Can use multiple. K_ESSENTIAL treats the end as a fatal system error. K_FP_REGS can help with floating point math(?)
+    //                             K_NO_WAIT);         // Tels kernel how long to wait before making thread
 
     if (mount_sd_card())
     {
@@ -251,8 +255,6 @@ int main(void)
         msc_enabled = false;
     }
 
-    initDisplay();
-    printk("Display initialized\n");
     int i = -64;
     // int64_t start_time = k_uptime_get();
     // int64_t duration = k_uptime_get() - start_time;
@@ -275,8 +277,6 @@ int main(void)
             paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Disabled");
         }
         paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
-        // paintCharacter('a', IMAGE_DATA2, i2, 1);
-        paintTextWrap(IMAGE_DATA2, 1, 11, 30, 121, "test text");
         convertBuffer(IMAGE_DATA2, output_buffer);
         k_mutex_unlock(&paint_mutex);
         invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);

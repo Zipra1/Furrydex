@@ -38,16 +38,20 @@ static struct spi_config spi_cfg = {
 };
 
 static struct gpio_callback te_cb_data;
-static K_SEM_DEFINE(te_sem, 0, 1);
+
+static K_MUTEX_DEFINE(te_mutex);
+static K_CONDVAR_DEFINE(te_condvar);
 
 static void te_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-    k_sem_give(&te_sem);
+    k_condvar_broadcast(&te_condvar);
 }
 
 void waitForTE(void)
 {
-    k_sem_take(&te_sem, K_FOREVER);
+    k_mutex_lock(&te_mutex, K_FOREVER);
+    k_condvar_wait(&te_condvar, &te_mutex, K_FOREVER);
+    k_mutex_unlock(&te_mutex);
 }
 
 void spi_send_byte(uint8_t byte)
