@@ -117,7 +117,7 @@ static void sample_msg_cb(struct usbd_context *const ctx, const struct usbd_msg 
 static int enable_usb_device_next(void)
 {
     int err;
-    k_msleep(500);
+    // k_msleep(500);
     // give PC time to connect. This lets us see all logs. I think i'm doing something wrong and this shouldn't be needed, but that's something for me to figure out when I'm more acquainted with Zephyr.
     sample_usbd = sample_usbd_init_device(sample_msg_cb);
     if (sample_usbd == NULL)
@@ -260,6 +260,10 @@ int main(void)
     // int64_t duration = k_uptime_get() - start_time;
 
     int selected_page_local = 0;
+
+    //blit(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 50, 100);
+    //blitMask(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, blit_test, 50, 50);
+
     while (true)
     {
         k_mutex_lock(&blink_mutex, K_FOREVER);
@@ -279,7 +283,7 @@ int main(void)
         paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
         convertBuffer(IMAGE_DATA2, output_buffer);
         k_mutex_unlock(&paint_mutex);
-        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);
         // paintRegion(IMAGE_DATA, 20, 20, 120, 120, 0);

@@ -4,9 +4,6 @@
 #include <zephyr/kernel.h>
 #include "lua/lua.h"
 
-#define LUA_MAX_THREADS 7
-#define LUA_THREAD_STACK_SIZE 4096
-
 typedef struct {
     struct k_thread thread;
     char *script;
@@ -16,7 +13,7 @@ typedef struct {
     char name[16];
 } lua_thread_slot_t;
 
-extern lua_thread_slot_t lua_slots[LUA_MAX_THREADS];
+extern lua_thread_slot_t lua_slots[CONFIG_LUA_MAX_THREADS];
 
 int lua_thread_start(const struct shell *shell, char *script);
 

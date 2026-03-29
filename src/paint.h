@@ -16,5 +16,7 @@ void convertBuffer(uint8_t *buffer, uint8_t *target_buffer);
 void FlipBuffer(unsigned char *buf, int physical_width, int height, bool flip_h, bool flip_v);
 void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int cx, int cy, int r, int colour);
 void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int selected_bubble);
+void blit(uint8_t *dst, int dst_w, int dst_h, const uint8_t *src, int src_w, int src_h, int x, int y);
+void blitMask(uint8_t *dst, int dst_w, int dst_h, const uint8_t *src, int src_w, int src_h, const uint8_t *mask, int x, int y);
 
 #endif

@@ -40,6 +40,27 @@ config FURRYDEX_FRAME_BYTES_DISPLAY
 
 endmenu
 
+menu "Lua options"
+config LUA_HEAP_SIZE
+	int "How much memory to be allocated to Lua"
+	default 65536
+	help
+	  How much memory to be allocated to Lua's heap
+
+config LUA_MAX_THREADS
+	int "How many Lua scripts can be running at once"
+	default 7
+	help
+	  How many Lua scripts can be running at once
+
+config LUA_THREAD_STACK_SIZE
+	int "How much memory to be allocated to each Lua thread"
+	default 3072
+	help
+	  How much memory to be allocated to each Lua thread.
+
+endmenu
+
 menu "USB sample options"
 	depends on USB_DEVICE_STACK_NEXT
 

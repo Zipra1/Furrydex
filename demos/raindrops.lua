@@ -1,7 +1,10 @@
+-- Only minimal libraries are loaded for every script.
+-- You'll need to enable basic features like math. This is to save RAM.
 local paint = require("paint")
+local math = require("math")
 
 local drops = {}
-local MAX_DROPS = 50
+local MAX_DROPS = 10
 local WIDTH = 132
 local HEIGHT = 250
 
@@ -22,15 +25,17 @@ for i = 1, MAX_DROPS do
 end
 
 while true do
-    -- clear screen
-    paint.circle(71, 125, 140, 1)
+	-- You can pass 0 or 1 to paint.clear as an argument to specify
+	-- whether to fill white or black. By default, it's white (1)
+    paint.clear()
 
     for i = 1, MAX_DROPS do
         local d = drops[i]
 
-        -- draw expanding rings
+        -- first draws a black circle
         paint.circle(d.x, d.y, d.r, 0)
         if d.r > 2 then
+			-- then draws a white circle, 2px smaller than the black circle. so that it appears as a ring
             paint.circle(d.x, d.y, d.r - 2, 1)
         end
 
@@ -39,6 +44,9 @@ while true do
             drops[i] = new_drop()
         end
     end
+	
+	paint.text(20,50,1,"Hello from Lua")
+	
 	paint.display()
-	zephyr.sleep(30)
+	paint.wait_for_display()
 end

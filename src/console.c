@@ -149,7 +149,7 @@ void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
     int slot = lua_thread_start(shell, script);
     if (slot < 0)
     {
-        shell_print(shell, "Max concurrent Lua scripts (%d) already running.", LUA_MAX_THREADS);
+        shell_print(shell, "Max concurrent Lua scripts (%d) already running.", CONFIG_LUA_MAX_THREADS);
         free(script);
     }
     else

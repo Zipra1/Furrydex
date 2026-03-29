@@ -95,8 +95,9 @@ static int lua_paint_character(lua_State *L)
 {
     size_t len;
     int character = luaL_checklstring(L, 1, &len);
-    if (len != 1) {
-        return luaL_argerror(L, 1, "Expected single character, use paint.text for a string");
+    if (len != 1)
+    {
+        return luaL_argerror(L, 1, "Expected single character, use text or text_wrap for a string");
     }
     int x = luaL_checknumber(L, 2);
     int y = luaL_checknumber(L, 3);
@@ -118,14 +119,138 @@ static int lua_paint_text(lua_State *L)
     return 0; // no return values pushed to Lua
 }
 
+static int lua_paint_text_wrap(lua_State *L)
+{
+    int x = luaL_checknumber(L, 1);
+    int y = luaL_checknumber(L, 2);
+    int kerning = luaL_checknumber(L, 3);
+    int width = luaL_checknumber(L, 4);
+    const char *text = luaL_checkstring(L, 5);
+    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+    paintTextWrap(lua_buffer, kerning, x, y, width, text);
+    k_mutex_unlock(&lua_paint_mutex);
+    return 0; // no return values pushed to Lua
+}
+
+static int lua_paint_blit(lua_State *L)
+{
+    size_t src_len;
+    const uint8_t *src = (const uint8_t *)luaL_checklstring(L, 1, &src_len);
+    int src_w = luaL_checkinteger(L, 2);
+    int src_h = luaL_checkinteger(L, 3);
+    int x = luaL_checkinteger(L, 4);
+    int y = luaL_checkinteger(L, 5);
+
+    const uint8_t *mask = NULL;
+    if (!lua_isnoneornil(L, 6))
+    {
+        size_t mask_len;
+        mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
+
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        blitMask(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, mask, x, y);
+    } else {
+        blit(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, x, y);
+    }
+
+    k_mutex_unlock(&lua_paint_mutex);
+    return 0;
+}
+
+// ⚠ THIS FUNCTION WAS MADE IWTH GENERATIVE AI. CHECK IT THOROUGHLY!!
+static int lua_paint_load_bmp(lua_State *L)
+{
+    const char *path = luaL_checkstring(L, 1);
+
+    struct fs_file_t f;
+    fs_file_t_init(&f);
+    if (fs_open(&f, path, FS_O_READ) != 0) {
+        return luaL_error(L, "could not open %s", path);
+    }
+
+    uint8_t header[54];
+    fs_read(&f, header, 54);
+
+    if (header[0] != 'B' || header[1] != 'M') {
+        fs_close(&f);
+        return luaL_error(L, "not a BMP file");
+    }
+
+    uint32_t pixel_offset = *(uint32_t *)(header + 10);
+    int32_t  bmp_w        = *(int32_t  *)(header + 18);
+    int32_t  bmp_h        = *(int32_t  *)(header + 22);
+    uint16_t bpp          = *(uint16_t *)(header + 28);
+    bool flipped = bmp_h > 0;
+    if (bmp_h < 0) bmp_h = -bmp_h;
+
+    if (bpp != 1) {
+        fs_close(&f);
+        return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
+    }
+
+    // BMP rows padded to 4-byte boundaries
+    int bmp_stride = ((bmp_w + 31) / 32) * 4;
+
+    // Output buffer uses tightly packed stride
+    int out_stride = (bmp_w + 7) / 8;
+    size_t out_size = out_stride * bmp_h;
+
+    uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
+    uint8_t *out_buf = malloc(out_size);
+    if (bmp_buf == NULL || out_buf == NULL) {
+        free(bmp_buf);
+        free(out_buf);
+        fs_close(&f);
+        return luaL_error(L, "out of memory");
+    }
+
+    fs_seek(&f, pixel_offset, FS_SEEK_SET);
+    fs_read(&f, bmp_buf, bmp_stride * bmp_h);
+    fs_close(&f);
+
+    // Convert from BMP layout (bottom-up, 4-byte padded rows)
+    // to tightly packed top-down layout
+    memset(out_buf, 0, out_size);
+    for (int row = 0; row < bmp_h; row++) {
+        int src_row = flipped ? (bmp_h - 1 - row) : row;
+        uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+        for (int col = 0; col < bmp_w; col++) {
+            int src_bit = 7 - (col % 8);
+            int pixel = (src_line[col / 8] >> src_bit) & 1;
+
+            int dst_bit  = 7 - (col % 8);
+            int dst_byte = row * out_stride + col / 8;
+            if (pixel)
+                out_buf[dst_byte] |= (1 << dst_bit);
+            else
+                out_buf[dst_byte] &= ~(1 << dst_bit);
+        }
+    }
+
+    free(bmp_buf);
+
+    // Push as Lua string (binary data), width, height
+    lua_pushlstring(L, (const char *)out_buf, out_size);
+    lua_pushinteger(L, bmp_w);
+    lua_pushinteger(L, bmp_h);
+
+    free(out_buf);
+    return 3;
+}
+
 static const luaL_Reg paint_funcs[] = {
     {"wait_for_display", lua_paint_wait_for_display},
     {"display", lua_paint_display},
     {"clear", lua_paint_clear},
     {"pixel", lua_paint_pixel},
+    {"rect", lua_paint_rect},
     {"circle", lua_paint_circle},
     {"character", lua_paint_character},
     {"text", lua_paint_text},
+    {"text_wrap", lua_paint_text_wrap},
+    {"blit", lua_paint_blit},
+    {"load_bmp", lua_paint_load_bmp},
     {NULL, NULL},
 };
 

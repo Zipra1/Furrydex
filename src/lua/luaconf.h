@@ -736,7 +736,8 @@
 ** (It must fit into max(size_t)/32.)
 */
 #if LUAI_IS32INT
-#define LUAI_MAXSTACK		1000000
+// should LUAI_MAXSTACK be defined by the heap size, or should it be just a given value?
+#define LUAI_MAXSTACK		(CONFIG_LUA_HEAP_SIZE*0.5)/8
 #else
 #define LUAI_MAXSTACK		15000
 #endif

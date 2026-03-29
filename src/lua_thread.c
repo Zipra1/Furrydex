@@ -13,9 +13,9 @@
 
 lua_State *L;
 
-K_THREAD_STACK_ARRAY_DEFINE(lua_stacks, LUA_MAX_THREADS, LUA_THREAD_STACK_SIZE);
+K_THREAD_STACK_ARRAY_DEFINE(lua_stacks, CONFIG_LUA_MAX_THREADS, CONFIG_LUA_THREAD_STACK_SIZE);
 
-lua_thread_slot_t lua_slots[LUA_MAX_THREADS] = {0};
+lua_thread_slot_t lua_slots[CONFIG_LUA_MAX_THREADS] = {0};
 
 extern int lua_sleep_ms(lua_State *L);
 extern int luaopen_paint(lua_State *L);
@@ -67,6 +67,16 @@ static void lua_thread_entry(void *a, void *b, void *c)
 
     luaL_openlibs(state);
     luaL_getsubtable(state, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+    lua_pushcfunction(state, luaopen_coroutine);
+    lua_setfield(state, -2, "coroutine");
+    lua_pushcfunction(state, luaopen_table);
+    lua_setfield(state, -2, "table");
+    lua_pushcfunction(state, luaopen_string);
+    lua_setfield(state, -2, "string");
+    lua_pushcfunction(state, luaopen_math);
+    lua_setfield(state, -2, "math");
+    lua_pushcfunction(state, luaopen_zephyr);
+    lua_setfield(state, -2, "zephyr");
     lua_pushcfunction(state, luaopen_paint);
     lua_setfield(state, -2, "paint");
     // lua_pushcfunction(state, luaopen_zephyr);
@@ -101,7 +111,7 @@ static void lua_thread_entry(void *a, void *b, void *c)
 
 int lua_thread_start(const struct shell *shell, char *script)
 {
-    for (int i = 0; i < LUA_MAX_THREADS; i++)
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {
         if (!lua_slots[i].in_use)
         {
