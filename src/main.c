@@ -281,10 +281,14 @@ int main(void)
             paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Disabled");
         }
         paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
-        convertBuffer(IMAGE_DATA2, output_buffer);
-        k_mutex_unlock(&paint_mutex);
-        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
-        waitForTE();
+        #if CONFIG_FURRYDEX_DISPLAY_TYPE_LCD
+            convertBuffer(IMAGE_DATA2, output_buffer);
+            k_mutex_unlock(&paint_mutex);
+            invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+            waitForTE();
+        #elif CONFIG_FURRYDEX_DISPLAY_TYPE_EPD
+            k_mutex_unlock(&paint_mutex);
+        #endif
         Display(25, 0, 36, 125, output_buffer);
         // paintRegion(IMAGE_DATA, 20, 20, 120, 120, 0);
         i++;

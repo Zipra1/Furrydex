@@ -2,17 +2,29 @@ mainmenu "Furrydex"
 
 menu "Display"
 
+choice FURRYDEX_DISPLAY_TYPE
+	bool "Type of display used"
+	default FURRYDEX_DISPLAY_TYPE_LCD
+
+config FURRYDEX_DISPLAY_TYPE_LCD
+	bool "LCD"
+
+config FURRYDEX_DISPLAY_TYPE_EPD
+	bool "EPD"
+	
+endchoice
+
 config FURRYDEX_DISPLAY_WIDTH
     int "EPD RAM width"
     default 132
     help
-      Set the width of the EPD displays RAM in bits/pixels
+      The width of the EPD displays RAM in bits
 
 config FURRYDEX_DISPLAY_HEIGHT
     int "Display memory height"
     default 250
     help
-      Set the height of the EPD displays RAM in bits/pixel
+      The height of the EPD displays RAM in bits
 
 config FURRYDEX_CURSOR_START_X
     int "Display memory cursor start X"
@@ -30,7 +42,7 @@ config FURRYDEX_FRAME_BYTES_BUFFER
     int "Size of frame buffers"
     default 4250
     help
-      The size of a frame buffer in the MCU's memory
+      The size of a frame buffer in the MCU's memory. This is sometimes different than the display's expected bytes due to pixel packing patterns.
 
 config FURRYDEX_FRAME_BYTES_DISPLAY
     int "Size of display's memory"

@@ -17,10 +17,7 @@ Currently, this is very early in development. It will be a *while* until its usa
 - [ ] - SD card passthrough, for easy modification/programming and profile making.
 
 ## Hardware
-Based on the nRF52 series of microcontrollers.
-I'd like the firmware to run on both nRF52833 and nRF52840, but nRF52833 may be dropped if its limits are reached.
-nRF54L15 may also be considered, since it's Just Better. Only really using nRF52840 right now since it's what I have on hand. (This is looking like the best option, since it has double the processing power of the 52840)
-nRF52 series is chosen due to very low power draw, native NFC, and 2.4GHz radio.
+The nRF52840 is currently being used for prototyping, but the final version(s) will probably be using the nRF54LM20A since it's better in every way
 
 ## Can I buy it?
 Not yet! But I do plan to sell these eventually at https://www.macroplastics.ca
@@ -29,7 +26,7 @@ The price target is 50USD or lower.
 ## Can I make it?
 It's not nearly complete yet, but if you want to help development then yes!
 
-Reccomended IDE for this is VSCode, since that's the officially used one for the nRF52840.
+Reccomended IDE for this is VSCode, since that's the officially used one for the nRF series.
 
 You'll need the nRF Connect extension, opening this repo with that and opening the extension tab should allow you to add a build configuration.
 
