@@ -10,6 +10,9 @@
 #include "nrf52840_custom_board_nrf52840-pinctrl.dtsi"
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-adc.h>
+
 / {
 	model = "Nrf52840 Custom Board";
 	compatible = "nordic,nrf52840-custom-board-nrf52840";
@@ -59,6 +62,7 @@
 
 	/* These aliases are provided for compatibility with samples */
 	aliases {
+		adcctrl = &adc; // adc for prototype input, should be changed to shift register
 		led0 = &led0;
 		led1 = &led1;
 		dc0 = &dc0;
@@ -71,6 +75,21 @@
 		watchdog0 = &wdt0;
 		zephyr-udc0 = &usbd;
 	};
+};
+
+&adc {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    status = "okay";
+
+    channel_0: channel@0 { reg = <0>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN0>; zephyr,resolution = <10>; };
+    channel_1: channel@1 { reg = <1>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN1>; zephyr,resolution = <10>; };
+    channel_2: channel@2 { reg = <2>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN2>; zephyr,resolution = <10>; };
+    channel_3: channel@3 { reg = <3>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN3>; zephyr,resolution = <10>; };
+    channel_4: channel@4 { reg = <4>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN4>; zephyr,resolution = <10>; };
+    channel_5: channel@5 { reg = <5>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN5>; zephyr,resolution = <10>; };
+    channel_6: channel@6 { reg = <6>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN6>; zephyr,resolution = <10>; };
+    channel_7: channel@7 { reg = <7>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN7>; zephyr,resolution = <10>; };
 };
 
 &reg0 {

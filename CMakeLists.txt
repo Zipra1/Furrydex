@@ -45,4 +45,6 @@ target_sources(app PRIVATE
     src/usb.c
     src/lua_thread.c
     src/disk.c
+    src/input.c
+    src/AnalogIn.c
 )
