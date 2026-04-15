@@ -47,4 +47,5 @@ target_sources(app PRIVATE
     src/disk.c
     src/input.c
     src/AnalogIn.c
+    src/drivers/74HC165.c
 )

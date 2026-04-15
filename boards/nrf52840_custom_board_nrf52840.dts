@@ -41,13 +41,16 @@
 			gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
 		};
 		rst0: rst_0{
-			gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>; // previously 0 31
+			gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
 		};
 		cs0: cs_0{
 			gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
 		};
 		te0: te_0{
 			gpios = <&gpio0 29 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		};
+		hc165shld: hc165shld{
+			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
@@ -60,20 +63,20 @@
 		};
 	};
 
-	/* These aliases are provided for compatibility with samples */
 	aliases {
-		adcctrl = &adc; // adc for prototype input, should be changed to shift register
+		adcctrl = &adc;
 		led0 = &led0;
 		led1 = &led1;
 		dc0 = &dc0;
 		rst0 = &rst0;
 		cs0 = &cs0;
 		te0 = &te0;
-		bootloader-led0 = &led0;
-		mcuboot-button0 = &button0;
-		mcuboot-led0 = &led0;
-		watchdog0 = &wdt0;
+		bootloader-led0 = &led0; // is this necessary?
+		mcuboot-button0 = &button0; // is this necessary?
+		mcuboot-led0 = &led0; // is this necessary?
+		watchdog0 = &wdt0; // is this necessary?
 		zephyr-udc0 = &usbd;
+		hc165shld = &hc165shld;
 	};
 };
 
@@ -82,14 +85,14 @@
     #size-cells = <0>;
     status = "okay";
 
-    channel_0: channel@0 { reg = <0>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN0>; zephyr,resolution = <10>; };
+    // channel_0: channel@0 { reg = <0>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN0>; zephyr,resolution = <10>; };
     channel_1: channel@1 { reg = <1>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN1>; zephyr,resolution = <10>; };
-    channel_2: channel@2 { reg = <2>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN2>; zephyr,resolution = <10>; };
+    // channel_2: channel@2 { reg = <2>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN2>; zephyr,resolution = <10>; };
     channel_3: channel@3 { reg = <3>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN3>; zephyr,resolution = <10>; };
     channel_4: channel@4 { reg = <4>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN4>; zephyr,resolution = <10>; };
-    channel_5: channel@5 { reg = <5>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN5>; zephyr,resolution = <10>; };
+    // channel_5: channel@5 { reg = <5>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN5>; zephyr,resolution = <10>; };
     channel_6: channel@6 { reg = <6>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN6>; zephyr,resolution = <10>; };
-    channel_7: channel@7 { reg = <7>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN7>; zephyr,resolution = <10>; };
+    // channel_7: channel@7 { reg = <7>; zephyr,gain = "ADC_GAIN_1_6"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>; zephyr,input-positive = <NRF_SAADC_AIN7>; zephyr,resolution = <10>; };
 };
 
 &reg0 {
@@ -109,12 +112,7 @@
 };
 
 &uart0 {
-	compatible = "nordic,nrf-uarte";
 	status = "disabled";
-	current-speed = <115200>;
-	pinctrl-0 = <&uart0_default>;
-	pinctrl-1 = <&uart0_sleep>;
-	pinctrl-names = "default", "sleep";
 };
 
 &gpiote {
@@ -140,13 +138,7 @@
     };
 };
 
-// &zephyr_udc0 {
-// 	cdc_acm_uart0 {
-// 		compatible = "zephyr,cdc-acm-uart";
-// 		label = "Zephyr USB CDC-ACM";
-// 	};
-// };
-
+// Display
 &spi3 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
@@ -154,9 +146,10 @@
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";
-	cs-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>; // random unused pin
+	// cs-gpios = <&gpio1 9 GPIO_ACTIVE_LOW>; // random unused pin
 };
 
+// SD card
 &spi1 {
         status = "okay";
         pinctrl-0 = <&custom_spi>;
@@ -175,4 +168,20 @@
                 };
                 spi-max-frequency = <24000000>;
         };
+};
+
+// Shift register for button inputs
+&spi2 {
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	max-frequency = <DT_FREQ_M(1)>;
+	pinctrl-0 = <&spi_sr>;
+	pinctrl-names = "default";
+	// cs-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>; // random unused pin
+
+	sr165: sr165@0 {
+        compatible = "vnd,spi-device";
+        reg = <0>;
+        spi-max-frequency = <1000000>;
+    };
 };
