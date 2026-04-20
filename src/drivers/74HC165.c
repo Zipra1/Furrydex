@@ -12,7 +12,7 @@ static const struct gpio_dt_spec hc165shld = GPIO_DT_SPEC_GET(SHLD_NODE, gpios);
 static const struct device *spi_dev = DEVICE_DT_GET(SR_NODE);
 
 static struct spi_config spi_cfg = {
-    .frequency = 1000000, // 1 MHz
+    .frequency = 1000000, // 1 MHz, should probably be 4MHz
     .operation = SPI_OP_MODE_MASTER |
                  SPI_TRANSFER_MSB |
                  SPI_WORD_SET(8) |
@@ -77,7 +77,6 @@ int SR165Read(void)
     return rx_buf;
 }
 
-// Read a single pin (0-7). Pin 0 = A (physical pin 11), pin 7 = H (pin 4).
 int SR165ReadPin(int pin)
 {
     if (pin < 0 || pin > 7)

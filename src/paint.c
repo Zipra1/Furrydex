@@ -191,23 +191,19 @@ void paintLine(unsigned char *buf, int buf_w, int buf_h, int x0, int y0, int x1,
 
 void paintRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y, int colour)
 {
+    int stride = (buf_w + 7) / 8;
+
     for (int cur_y = start_y; cur_y < end_y; cur_y++)
     {
         for (int cur_x = start_x; cur_x < end_x; cur_x++)
         {
-            uint32_t total_bit_offset = (uint32_t)cur_y * buf_w + cur_x;
-
-            int byte_idx = total_bit_offset / 8;
-            uint8_t bit_mask = (1 << (7 - (total_bit_offset % 8)));
+            int byte_idx = cur_y * stride + cur_x / 8;
+            uint8_t bit_mask = (1 << (7 - (cur_x % 8)));
 
             if (colour)
-            {
                 buf[byte_idx] |= bit_mask;
-            }
             else
-            {
                 buf[byte_idx] &= ~bit_mask;
-            }
         }
     }
 }

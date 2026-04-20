@@ -232,7 +232,6 @@ int main(void)
             k_mutex_unlock(&paint_mutex);
         #endif
         Display(25, 0, 36, 125, output_buffer);
-        // paintRegion(IMAGE_DATA, 20, 20, 120, 120, 0);
         i++;
         if (i > 122)
         {

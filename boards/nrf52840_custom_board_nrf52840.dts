@@ -146,7 +146,6 @@
 	pinctrl-0 = <&spi3_default>;
 	pinctrl-1 = <&spi3_sleep>;
 	pinctrl-names = "default", "sleep";
-	// cs-gpios = <&gpio1 9 GPIO_ACTIVE_LOW>; // random unused pin
 };
 
 // SD card
@@ -177,11 +176,10 @@
 	max-frequency = <DT_FREQ_M(1)>;
 	pinctrl-0 = <&spi_sr>;
 	pinctrl-names = "default";
-	// cs-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>; // random unused pin
 
 	sr165: sr165@0 {
         compatible = "vnd,spi-device";
         reg = <0>;
-        spi-max-frequency = <1000000>;
+        spi-max-frequency = <1000000>; // 1Mhz, should probably be 4MHz
     };
 };

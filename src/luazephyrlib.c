@@ -24,6 +24,7 @@
 ///////////////
 
 #include "paint.h"
+#include "input.h"
 #include "lcd.h" // todo: ifdef here for lcd/epaper
 #include "imgdata.h"
 
@@ -257,6 +258,33 @@ static const luaL_Reg paint_funcs[] = {
 LUAMOD_API int luaopen_paint(lua_State *L)
 {
     luaL_newlib(L, paint_funcs);
+    return 1;
+}
+
+/////////////
+/// INPUT ///
+/////////////
+
+int lua_get_input(lua_State *L)
+{
+    int input = (int)luaL_checknumber(L, 1);
+
+    k_mutex_lock(&inputs_mutex, K_FOREVER); // dunno if a mutex is necessary here. figured it doesn't hurt
+    int output = get_bit(inputs, input);    
+    k_mutex_unlock(&inputs_mutex);
+
+    lua_pushinteger(L, output);
+    return 1;
+}
+
+static const luaL_Reg input_funcs[] = {
+    {"get_input", lua_get_input},
+    {NULL, NULL},
+};
+
+LUAMOD_API int luaopen_input(lua_State *L)
+{
+    luaL_newlib(L, input_funcs);
     return 1;
 }
 

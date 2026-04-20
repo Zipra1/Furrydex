@@ -19,27 +19,36 @@
   ((byte) & 0x02 ? '1' : '0'), \
   ((byte) & 0x01 ? '1' : '0')
 
-  
+K_MUTEX_DEFINE(inputs_mutex);
+
+int inputs = 0;
+
 static void input_thread(void *a, void *b, void *c)
 {
     k_msleep(2000);
     while (1)
     {
-        int inputs = SR165Read();
-        if (inputs < 0)
+        int local_inputs = SR165Read();
+        if (local_inputs < 0)
         {
             printk("SR165 read failed\n");
         }
         else
         {
-            char bin_str[16];
-            sprintf(bin_str, BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(inputs));
-            k_mutex_lock(&paint_mutex, K_FOREVER);
-            paintText(IMAGE_DATA2, 1, 40, 30, bin_str);
-            k_mutex_unlock(&paint_mutex);
+            k_mutex_lock(&inputs_mutex, K_FOREVER);
+            inputs = local_inputs;
+            k_mutex_unlock(&inputs_mutex);
         }
-        k_msleep(30);
+        k_msleep(25);
     }
+}
+
+int get_bit(unsigned char byte, int n) {
+    if (n < 0 || n > 7) {
+        return -1;
+    }
+
+    return (byte >> n) & 0x01;
 }
 
 K_THREAD_DEFINE(input_tid, 1024, input_thread, NULL, NULL, NULL, 10, 0, 0);
