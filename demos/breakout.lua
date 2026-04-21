@@ -10,7 +10,7 @@ local paddle_width = 15
 local paddle_pos = 71
 local ball_angle = math.pi / 2.5
 local ball_pos_x = 71
-local ball_pos_y = 150
+local ball_pos_y = 220
 
 local block_cols = 8
 local block_rows = 4
@@ -26,19 +26,30 @@ local blocks_broken = 0
 local function reset()
     paddle_pos = 71
     ball_pos_x = 71
-    ball_pos_y = 150
+    ball_pos_y = 220
     blocks_broken = 0
     ball_speed = 4
     ball_angle = math.pi / 2.5
-    for r = 1, block_rows do
-        blocks[r] = {}
-        for c = 1, block_cols do
-            blocks[r][c] = true
-        end
-    end
     while input.get_input(3) == 0 do
         paint.clear()
         paint.text(20, 50, 1, "Press A to start")
+        paint.text(14, 60, 1, "(UP/DOWN) # Rows: ")
+        paint.text(115, 60, 1, block_rows)
+        if input.get_input(4) == 1 then
+            block_rows = block_rows + 1
+            zephyr.sleep(100)
+        end
+        if input.get_input(7) == 1 then
+            block_rows = block_rows - 1
+            zephyr.sleep(100)
+        end
+
+        for r = 1, block_rows do
+            blocks[r] = {}
+            for c = 1, block_cols do
+                blocks[r][c] = true
+            end
+        end
 
         paint.circle(ball_pos_x, ball_pos_y, ball_radius, 0)
         paint.rect(paddle_pos - paddle_width, 230, paddle_pos + paddle_width, 235, 0)
@@ -100,6 +111,7 @@ while true do
     --paint.text(30,120,1,paddle_pos)
     --paint.text(30,130,1,ball_pos_x)
     --paint.text(30,140,1,ball_pos_y)
+    paint.text(30, 30, 1, blocks_broken)
 
     -------------------
     -- PADDLE INPUTS --
@@ -128,8 +140,8 @@ while true do
     if (ball_pos_y < ball_radius + 80) then -- top wall
         ball_pos_y = ball_radius + 80
         ball_angle = (math.pi * 2) - ball_angle
-    elseif (ball_pos_y + ball_radius) > 235 then -- bottom wall
-        ball_pos_y = 235 - ball_radius
+    elseif (ball_pos_y + ball_radius) > 240 then -- bottom wall
+        ball_pos_y = 240 - ball_radius
         ball_angle = (math.pi * 2) - ball_angle
         reset()
     end
@@ -171,12 +183,14 @@ while true do
 
                 if (dx * dx + dy * dy) < (ball_radius * ball_radius) then
                     blocks[r][c] = false
-                    blocks_broken = blocks_broken+1
-                    if blocks_broken > 4 then
+                    blocks_broken = blocks_broken + 1
+                    if blocks_broken >= 4 then
                         ball_speed = 5
-                    elseif blocks_broken > 12 then
-                        ball_speed = 6.5
-                    elseif blocks_broken == (block_cols * block_rows) then
+                    end
+                    if blocks_broken >= 12 then
+                        ball_speed = 5.7
+                    end
+                    if blocks_broken >= (block_cols * block_rows) then
                         reset()
                     end
                     if math.abs(dy) >= math.abs(dx) then

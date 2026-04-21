@@ -36,7 +36,7 @@ static int lua_paint_display(lua_State *L)
     k_mutex_lock(&paint_mutex, K_FOREVER);
     memcpy(IMAGE_DATA2, lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
     k_mutex_unlock(&paint_mutex);
-    return 0; // no return values pushed to Lua
+    return 0; // no return values pushed to Lua. the return on a lua function just specifies the amount of values returned, not the actual value returned.
 }
 
 static int lua_paint_wait_for_display(lua_State *L)
