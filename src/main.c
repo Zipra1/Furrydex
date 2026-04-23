@@ -18,6 +18,7 @@
 #include "usb.h"
 #include "luazephyrlib.h"
 #include "disk.h"
+#include "input.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -32,7 +33,7 @@
 
 #define DISK_NAME "SD"
 
-USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Zephyr", "SD_Card", "1.00");
+USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Macroplastics", "Furrydex", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
@@ -198,47 +199,23 @@ int main(void)
     }
 
     int i = -64;
-    // int64_t start_time = k_uptime_get();
-    // int64_t duration = k_uptime_get() - start_time;
-
     int selected_page_local = 0;
-
-    //blit(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 50, 100);
-    //blitMask(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, blit_test, 50, 50);
 
     while (true)
     {
-        k_mutex_lock(&blink_mutex, K_FOREVER);
+        k_mutex_lock(&page_select_mutex, K_FOREVER);
         selected_page_local = selected_page;
-        k_mutex_unlock(&blink_mutex);
+        k_mutex_unlock(&page_select_mutex);
+
         k_mutex_lock(&paint_mutex, K_FOREVER);
-        // paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 2, selected_page_local);
-        // start_time = k_uptime_get();
-        if (msc_enabled)
-        {
-            paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Enabled ");
-        }
-        else
-        {
-            paintTextWrap(IMAGE_DATA2, 1, 11, 0, 121, "SD Passthrough Disabled");
-        }
-        paintText(IMAGE_DATA2, 1, 16 + i, 15, "meow! :3");
-        #if CONFIG_FURRYDEX_DISPLAY_TYPE_LCD
-            convertBuffer(IMAGE_DATA2, output_buffer);
-            k_mutex_unlock(&paint_mutex);
-            invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
-            waitForTE();
-        #elif CONFIG_FURRYDEX_DISPLAY_TYPE_EPD
-            k_mutex_unlock(&paint_mutex);
-        #endif
+        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 2, selected_page_local);
+        convertBuffer(IMAGE_DATA2, output_buffer);
+        k_mutex_unlock(&paint_mutex);
+
+        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+
+        waitForTE();
         Display(25, 0, 36, 125, output_buffer);
-        i++;
-        if (i > 122)
-        {
-            i = -64;
-        }
-        // duration = k_uptime_get() - start_time;
-        //  printk("Frame took %lld ms\n", duration);
     }
     return 0;
 }

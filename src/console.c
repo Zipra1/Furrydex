@@ -10,54 +10,52 @@
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 
-K_MUTEX_DEFINE(blink_mutex);
-
-const int32_t blink_max_ms = 2000;
-const int32_t blink_min_ms = 100;
-int32_t blink_sleep_ms = 500;
-
-static int cmd_blink_inc(const struct shell *sh, size_t argc, char **argv)
-{
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-    k_mutex_lock(&blink_mutex, K_FOREVER);
-    blink_sleep_ms = MIN(blink_sleep_ms + 100, blink_max_ms);
-    k_mutex_unlock(&blink_mutex);
-    shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
-    return 0;
-}
-
-static int cmd_blink_dec(const struct shell *sh, size_t argc, char **argv)
-{
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-    k_mutex_lock(&blink_mutex, K_FOREVER);
-    blink_sleep_ms = MAX(blink_sleep_ms - 100, blink_min_ms);
-    k_mutex_unlock(&blink_mutex);
-    shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
-    return 0;
-}
-
-SHELL_STATIC_SUBCMD_SET_CREATE(sub_blink,
-                               SHELL_CMD(inc, NULL, "Increase blink speed by 100ms", cmd_blink_inc),
-                               SHELL_CMD(dec, NULL, "Decrease blink speed by 100ms", cmd_blink_dec),
-                               SHELL_SUBCMD_SET_END);
-SHELL_CMD_REGISTER(blink, &sub_blink, "Blink speed controls", NULL);
-
-K_MUTEX_DEFINE(page_select_mutex); // Why are you here. ＞︿＜
+K_MUTEX_DEFINE(page_select_mutex);
 int selected_page = 0;
+
+// const int32_t blink_max_ms = 2000;
+// const int32_t blink_min_ms = 100;
+// int32_t blink_sleep_ms = 500;
+
+// static int cmd_blink_inc(const struct shell *sh, size_t argc, char **argv)
+// {
+//     ARG_UNUSED(argc);
+//     ARG_UNUSED(argv);
+//     k_mutex_lock(&page_select_mutex, K_FOREVER);
+//     blink_sleep_ms = MIN(blink_sleep_ms + 100, blink_max_ms);
+//     k_mutex_unlock(&page_select_mutex);
+//     shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
+//     return 0;
+// }
+
+// static int cmd_blink_dec(const struct shell *sh, size_t argc, char **argv)
+// {
+//     ARG_UNUSED(argc);
+//     ARG_UNUSED(argv);
+//     k_mutex_lock(&page_select_mutex, K_FOREVER);
+//     blink_sleep_ms = MAX(blink_sleep_ms - 100, blink_min_ms);
+//     k_mutex_unlock(&page_select_mutex);
+//     shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
+//     return 0;
+// }
+
+// SHELL_STATIC_SUBCMD_SET_CREATE(sub_blink,
+//                                SHELL_CMD(inc, NULL, "Increase blink speed by 100ms", cmd_blink_inc),
+//                                SHELL_CMD(dec, NULL, "Decrease blink speed by 100ms", cmd_blink_dec),
+//                                SHELL_SUBCMD_SET_END);
+// SHELL_CMD_REGISTER(blink, &sub_blink, "Blink speed controls", NULL);
 
 static int cmd_page_left(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    k_mutex_lock(&blink_mutex, K_FOREVER);
+    k_mutex_lock(&page_select_mutex, K_FOREVER);
     selected_page--;
     if (selected_page < 0)
     {
         selected_page = 0;
     }
-    k_mutex_unlock(&blink_mutex);
+    k_mutex_unlock(&page_select_mutex);
     return 0;
 }
 
@@ -65,13 +63,13 @@ static int cmd_page_right(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    k_mutex_lock(&blink_mutex, K_FOREVER);
+    k_mutex_lock(&page_select_mutex, K_FOREVER);
     selected_page++;
     if (selected_page > 2)
     {
         selected_page = 2;
     }
-    k_mutex_unlock(&blink_mutex);
+    k_mutex_unlock(&page_select_mutex);
     return 0;
 }
 

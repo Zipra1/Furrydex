@@ -3,7 +3,6 @@
 
 #include <zephyr/kernel.h>
 
-extern struct k_mutex blink_mutex;
 extern struct k_mutex page_select_mutex;
 extern int selected_page;
 extern const int32_t blink_max_ms;

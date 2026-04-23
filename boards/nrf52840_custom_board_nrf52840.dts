@@ -57,16 +57,16 @@
 	buttons {
 		compatible = "gpio-keys";
 		button0: button_0 {
-			gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
-			label = "Push button switch 0";
-			zephyr,code = <INPUT_KEY_0>;
+			gpios = <&gpio0 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "Any button pressed";
 		};
 	};
 
 	aliases {
+		sw0 = &button0;
 		adcctrl = &adc;
-		led0 = &led0;
-		led1 = &led1;
+		led0 = &led0;  // is this necessary?
+		led1 = &led1;  // is this necessary?
 		dc0 = &dc0;
 		rst0 = &rst0;
 		cs0 = &cs0;

@@ -1,56 +1,101 @@
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/init.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/sys/printk.h>
+
+#include <inttypes.h>
+#include <stdio.h>
+
 #include "input.h"
 #include "paint.h"
 #include "luazephyrlib.h"
 #include "drivers/74HC165.h"
 #include "imgdata.h"
-#include <stdio.h>
 
+#define SW0_NODE DT_ALIAS(sw0)
+#if !DT_NODE_HAS_STATUS_OKAY(SW0_NODE)
+#error "Unsupported board: sw0 devicetree alias is not defined"
+#endif
+static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {0});
+static struct gpio_callback button_cb_data;
 
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  ((byte) & 0x80 ? '1' : '0'), \
-  ((byte) & 0x40 ? '1' : '0'), \
-  ((byte) & 0x20 ? '1' : '0'), \
-  ((byte) & 0x10 ? '1' : '0'), \
-  ((byte) & 0x08 ? '1' : '0'), \
-  ((byte) & 0x04 ? '1' : '0'), \
-  ((byte) & 0x02 ? '1' : '0'), \
-  ((byte) & 0x01 ? '1' : '0')
+static struct k_work_delayable button_work;
 
 K_MUTEX_DEFINE(inputs_mutex);
-
 int inputs = 0;
 
-static void input_thread(void *a, void *b, void *c)
+static void button_work_handler(struct k_work *work)
 {
-    k_msleep(2000);
-    while (1)
+    printk("Button pressed at %" PRIu32 "\n", k_cycle_get_32());
+    int local_inputs = SR165Read();
+    if (local_inputs < 0)
     {
-        int local_inputs = SR165Read();
-        if (local_inputs < 0)
-        {
-            printk("SR165 read failed\n");
-        }
-        else
-        {
-            k_mutex_lock(&inputs_mutex, K_FOREVER);
-            inputs = local_inputs;
-            k_mutex_unlock(&inputs_mutex);
-        }
-        k_msleep(25);
+        printk("SR165 read failed\n");
+    }
+    else
+    {
+        k_mutex_lock(&inputs_mutex, K_FOREVER);
+        inputs = local_inputs;
+        k_mutex_unlock(&inputs_mutex);
+    }
+
+    if (local_inputs != 0){
+        k_work_reschedule(&button_work, K_MSEC(25));
     }
 }
 
-int get_bit(unsigned char byte, int n) {
-    if (n < 0 || n > 7) {
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    k_work_submit(&button_work);
+}
+
+static void input_thread(void *a, void *b, void *c)
+{
+    k_msleep(3000);
+    int ret;
+
+    if (!gpio_is_ready_dt(&button))
+    {
+        printk("Error: button device %s is not ready\n",
+               button.port->name);
+        return 0;
+    }
+
+    ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+    if (ret != 0)
+    {
+        printk("Error %d: failed to configure %s pin %d\n",
+               ret, button.port->name, button.pin);
+        return 0;
+    }
+
+    ret = gpio_pin_interrupt_configure_dt(&button,
+                                          GPIO_INT_EDGE_BOTH);
+    if (ret != 0)
+    {
+        printk("Error %d: failed to configure interrupt on %s pin %d\n",
+               ret, button.port->name, button.pin);
+        return 0;
+    }
+
+    k_work_init_delayable(&button_work, button_work_handler);
+    gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
+    gpio_add_callback(button.port, &button_cb_data);
+    printk("Set up button at %s pin %d\n", button.port->name, button.pin);
+}
+
+int get_bit(unsigned char byte, int n)
+{
+    if (n < 0 || n > 7)
+    {
         return -1;
     }
 
     return (byte >> n) & 0x01;
 }
 
-K_THREAD_DEFINE(input_tid, 1024, input_thread, NULL, NULL, NULL, 10, 0, 0);
+K_THREAD_DEFINE(input_tid, 2048, input_thread, NULL, NULL, NULL, 10, 0, 0);
 
 // SYS_INIT(input_init2, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
