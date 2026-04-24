@@ -4,6 +4,11 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(blinky_custom)
 
+# nostartfiles allows building on chromeos.
+# not sure if its also needed for linux,
+# but it probably isn't
+zephyr_ld_options(-nostartfiles)
+
 target_sources(app PRIVATE
     src/luazephyrlib.c
     src/lua/lapi.c
