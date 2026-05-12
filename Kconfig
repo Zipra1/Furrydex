@@ -52,6 +52,20 @@ config FURRYDEX_FRAME_BYTES_DISPLAY
 
 endmenu
 
+menu "Input mapping"
+	config FURRYDEX_INPUT_LEFT
+	int "The shift register bit corresponding to the left input (0-7)"
+	default 6
+	help
+		The shift register bit corresponding to the left input (0-7)
+
+	config FURRYDEX_INPUT_RIGHT
+	int "The shift register bit corresponding to the right input (0-7)"
+	default 5
+	help
+		The shift register bit corresponding to the right input (0-7)
+endmenu
+
 menu "Lua options"
 config LUA_HEAP_SIZE
 	int "How much memory to be allocated to Lua"

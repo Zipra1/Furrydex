@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/atomic.h>
 #include <stdio.h>
 #include <string.h>
 #include "console.h"
@@ -9,9 +10,9 @@
 #include <ff.h>
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
+#include "ui.h"
 
 K_MUTEX_DEFINE(page_select_mutex);
-int selected_page = 0;
 
 // const int32_t blink_max_ms = 2000;
 // const int32_t blink_min_ms = 100;
@@ -49,13 +50,7 @@ static int cmd_page_left(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    k_mutex_lock(&page_select_mutex, K_FOREVER);
-    selected_page--;
-    if (selected_page < 0)
-    {
-        selected_page = 0;
-    }
-    k_mutex_unlock(&page_select_mutex);
+    page_left();
     return 0;
 }
 
@@ -63,13 +58,7 @@ static int cmd_page_right(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    k_mutex_lock(&page_select_mutex, K_FOREVER);
-    selected_page++;
-    if (selected_page > 2)
-    {
-        selected_page = 2;
-    }
-    k_mutex_unlock(&page_select_mutex);
+    page_right();
     return 0;
 }
 

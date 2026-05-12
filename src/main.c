@@ -19,6 +19,7 @@
 #include "luazephyrlib.h"
 #include "disk.h"
 #include "input.h"
+#include "ui.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -29,6 +30,7 @@
 #include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/atomic.h>
 
 
 #define DISK_NAME "SD"
@@ -146,8 +148,6 @@ int main(void)
     initDisplay();
     printk("Display initialized\n");
 
-
-
     if (!device_is_ready(uart_dev))
     {
         LOG_ERR("CDC ACM device not ready");
@@ -199,16 +199,11 @@ int main(void)
     }
 
     int i = -64;
-    int selected_page_local = 0;
 
     while (true)
     {
-        k_mutex_lock(&page_select_mutex, K_FOREVER);
-        selected_page_local = selected_page;
-        k_mutex_unlock(&page_select_mutex);
-
         k_mutex_lock(&paint_mutex, K_FOREVER);
-        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 2, selected_page_local);
+        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 2, atomic_get(&selected_page));
         convertBuffer(IMAGE_DATA2, output_buffer);
         k_mutex_unlock(&paint_mutex);
 

@@ -51,6 +51,7 @@ target_sources(app PRIVATE
     src/lua_thread.c
     src/disk.c
     src/input.c
+    src/ui.c
     src/AnalogIn.c
     src/drivers/74HC165.c
 )

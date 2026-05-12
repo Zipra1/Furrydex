@@ -28,32 +28,38 @@ int inputs = 0;
 
 static void button_work_handler(struct k_work *work)
 {
-    printk("Button pressed at %" PRIu32 "\n", k_cycle_get_32());
     int local_inputs = SR165Read();
     if (local_inputs < 0)
     {
         printk("SR165 read failed\n");
+        return;
     }
-    else
+    k_mutex_lock(&inputs_mutex, K_FOREVER);
+    int prev_inputs = inputs;
+    inputs = local_inputs;
+    k_mutex_unlock(&inputs_mutex);
+
+    if (local_inputs != prev_inputs)
     {
-        k_mutex_lock(&inputs_mutex, K_FOREVER);
-        inputs = local_inputs;
-        k_mutex_unlock(&inputs_mutex);
+        k_sem_give(&input_sem);
     }
 
-    if (local_inputs != 0){
+    if (local_inputs != 0)
+    {
         k_work_reschedule(&button_work, K_MSEC(25));
     }
 }
 
+K_SEM_DEFINE(input_sem, 0, 1);
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-    k_work_submit(&button_work);
+    // k_work_submit(&button_work);
+    k_work_reschedule(&button_work, K_MSEC(10)); // wait for button to settle
 }
 
 static void input_thread(void *a, void *b, void *c)
 {
-    k_msleep(3000);
+    k_msleep(500);
     int ret;
 
     if (!gpio_is_ready_dt(&button))
