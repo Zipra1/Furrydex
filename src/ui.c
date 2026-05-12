@@ -33,17 +33,24 @@ void page_right()
 
 static void ui_thread(void *a, void *b, void *c)
 {
+    int prev_inputs = 0;
+
     while (1)
     {
         k_sem_take(&input_sem, K_FOREVER);
-        if (get_bit(inputs, CONFIG_FURRYDEX_INPUT_LEFT))
+
+        int newly_pressed = inputs & ~prev_inputs;
+
+        if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_LEFT))
         {
             page_left();
         }
-        if (get_bit(inputs, CONFIG_FURRYDEX_INPUT_RIGHT))
+        if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_RIGHT))
         {
             page_right();
         }
+
+        prev_inputs = inputs;
     }
 }
 
