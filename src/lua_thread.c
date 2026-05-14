@@ -23,7 +23,7 @@ extern int lua_sleep_ms(lua_State *L);
 extern int luaopen_paint(lua_State *L);
 extern int luaopen_input(lua_State *L);
 
-static uint8_t lua_alloc_pool[98304];
+static uint8_t lua_alloc_pool[CONFIG_LUA_HEAP_SIZE];
 static struct k_heap lua_heap;
 static bool lua_heap_initialized = false;
 
@@ -63,6 +63,32 @@ static void lua_thread_cancel_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
+int lua_thread_update_priorities(int selected_slot)
+{
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (!lua_slots[i].in_use)
+            continue;
+
+        int prio = (i == selected_slot) ? LUA_THREAD_PRIO_FG : LUA_THREAD_PRIO_BG;
+        k_thread_priority_set(&lua_slots[i].thread, prio);
+    }
+    return 0;
+}
+
+int recount_lua_threads(void)
+{
+    int count = 0;
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (lua_slots[i].in_use)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
 static void lua_thread_entry(void *a, void *b, void *c)
 {
     lua_thread_slot_t *slot = (lua_thread_slot_t *)a;
@@ -88,7 +114,15 @@ static void lua_thread_entry(void *a, void *b, void *c)
     lua_setfield(state, LUA_REGISTRYINDEX, "lua_thread_slot");
     lua_sethook(state, lua_thread_cancel_hook, LUA_MASKCOUNT, 256);
 
-    luaL_openlibs(state);
+    lua_checkstack(state, 40);
+    lua_gc(state, LUA_GCSETPAUSE, 100);
+    lua_gc(state, LUA_GCSETSTEPMUL, 400);
+
+    luaL_requiref(state, "_G", luaopen_base, 1);
+    lua_pop(state, 1);
+    luaL_requiref(state, LUA_LOADLIBNAME, luaopen_package, 1);
+    lua_pop(state, 1);
+
     luaL_getsubtable(state, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
     lua_pushcfunction(state, luaopen_coroutine);
     lua_setfield(state, -2, "coroutine");
@@ -140,19 +174,12 @@ static void lua_thread_entry(void *a, void *b, void *c)
 }
 int num_lua_threads = 0;
 
-int recount_lua_threads(void)
+int lua_thread_start(const struct shell *shell, char *script, char *name)
 {
-    int count = 0;
-    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++) {
-        if (lua_slots[i].in_use) {
-            count++;
-        }
+    if (strlen(name) > 64)
+    {
+        return;
     }
-    return count;
-}
-
-int lua_thread_start(const struct shell *shell, char *script)
-{
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {
         if (!lua_slots[i].in_use)
@@ -174,7 +201,7 @@ int lua_thread_start(const struct shell *shell, char *script)
                             lua_thread_entry,
                             &lua_slots[i], NULL, NULL,
                             K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
-            snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), "Lua %d", i);
+            snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), name, i);
             k_thread_name_set(&lua_slots[i].thread, lua_slots[i].name);
             num_lua_threads = recount_lua_threads();
             return i;
@@ -211,17 +238,4 @@ int get_current_lua_slot(void)
         }
     }
     return -1;
-}
-
-int lua_thread_update_priorities(int selected_slot)
-{
-    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
-    {
-        if (!lua_slots[i].in_use)
-            continue;
-
-        int prio = (i == selected_slot) ? LUA_THREAD_PRIO_FG : LUA_THREAD_PRIO_BG;
-        k_thread_priority_set(&lua_slots[i].thread, prio);
-    }
-    return 0;
 }

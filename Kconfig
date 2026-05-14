@@ -69,7 +69,7 @@ endmenu
 menu "Lua options"
 config LUA_HEAP_SIZE
 	int "How much memory to be allocated to Lua"
-	default 65536
+	default 118784
 	help
 	  How much memory to be allocated to Lua's heap
 
@@ -81,7 +81,7 @@ config LUA_MAX_THREADS
 
 config LUA_THREAD_STACK_SIZE
 	int "How much memory to be allocated to each Lua thread"
-	default 3072
+	default 4096
 	help
 	  How much memory to be allocated to each Lua thread.
 

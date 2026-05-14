@@ -14,7 +14,7 @@ Currently, this is very early in development. It will be a *while* until its usa
 - [x] - Lua interpreter to make easily shareable programs and interface with external/internal hardware
 - [ ] - Module port for expanding functionality. Expose GPIOs, power, and SPI bus. Should allow the furrydex to be used as an mp3 player, phone, gps, and more.
 - [ ] - Infrared transceiver (Easy and cheap to add, so why not)
-- [ ] - SD card passthrough, for easy modification/programming and profile making.
+- [ ] - SD card passthrough, for easy modification/programming and profile making. (Kinda implemented)
 
 ## Hardware
 The nRF52840 is currently being used for prototyping, but the final version(s) will probably be using the nRF54LM20A since it's better in every way (just not out yet)

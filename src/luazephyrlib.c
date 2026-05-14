@@ -221,6 +221,7 @@ static int lua_paint_blit(lua_State *L)
         }
 
         k_mutex_unlock(&lua_paint_mutex);
+        lua_gc(L, LUA_GCSTEP, 100);
     }
     return 0;
 }
@@ -229,92 +230,89 @@ static int lua_paint_blit(lua_State *L)
 static int lua_paint_load_bmp(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
-    if (should_display())
+
+    struct fs_file_t f;
+    fs_file_t_init(&f);
+    if (fs_open(&f, path, FS_O_READ) != 0)
     {
-        struct fs_file_t f;
-        fs_file_t_init(&f);
-        if (fs_open(&f, path, FS_O_READ) != 0)
-        {
-            return luaL_error(L, "could not open %s", path);
-        }
-
-        uint8_t header[54];
-        fs_read(&f, header, 54);
-
-        if (header[0] != 'B' || header[1] != 'M')
-        {
-            fs_close(&f);
-            return luaL_error(L, "not a BMP file");
-        }
-
-        uint32_t pixel_offset = *(uint32_t *)(header + 10);
-        int32_t bmp_w = *(int32_t *)(header + 18);
-        int32_t bmp_h = *(int32_t *)(header + 22);
-        uint16_t bpp = *(uint16_t *)(header + 28);
-        bool flipped = bmp_h > 0;
-        if (bmp_h < 0)
-            bmp_h = -bmp_h;
-
-        if (bpp != 1)
-        {
-            fs_close(&f);
-            return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
-        }
-
-        // BMP rows padded to 4-byte boundaries
-        int bmp_stride = ((bmp_w + 31) / 32) * 4;
-
-        // Output buffer uses tightly packed stride
-        int out_stride = (bmp_w + 7) / 8;
-        size_t out_size = out_stride * bmp_h;
-
-        uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
-        uint8_t *out_buf = malloc(out_size);
-        if (bmp_buf == NULL || out_buf == NULL)
-        {
-            free(bmp_buf);
-            free(out_buf);
-            fs_close(&f);
-            return luaL_error(L, "out of memory");
-        }
-
-        fs_seek(&f, pixel_offset, FS_SEEK_SET);
-        fs_read(&f, bmp_buf, bmp_stride * bmp_h);
-        fs_close(&f);
-
-        // Convert from BMP layout (bottom-up, 4-byte padded rows)
-        // to tightly packed top-down layout
-        memset(out_buf, 0, out_size);
-        for (int row = 0; row < bmp_h; row++)
-        {
-            int src_row = flipped ? (bmp_h - 1 - row) : row;
-            uint8_t *src_line = bmp_buf + src_row * bmp_stride;
-
-            for (int col = 0; col < bmp_w; col++)
-            {
-                int src_bit = 7 - (col % 8);
-                int pixel = (src_line[col / 8] >> src_bit) & 1;
-
-                int dst_bit = 7 - (col % 8);
-                int dst_byte = row * out_stride + col / 8;
-                if (pixel)
-                    out_buf[dst_byte] |= (1 << dst_bit);
-                else
-                    out_buf[dst_byte] &= ~(1 << dst_bit);
-            }
-        }
-
-        free(bmp_buf);
-
-        // Push as Lua string (binary data), width, height
-        lua_pushlstring(L, (const char *)out_buf, out_size);
-        lua_pushinteger(L, bmp_w);
-        lua_pushinteger(L, bmp_h);
-
-        free(out_buf);
-        return 3;
+        return luaL_error(L, "could not open %s", path);
     }
-    return 0;
+
+    uint8_t header[54];
+    fs_read(&f, header, 54);
+
+    if (header[0] != 'B' || header[1] != 'M')
+    {
+        fs_close(&f);
+        return luaL_error(L, "not a BMP file");
+    }
+
+    uint32_t pixel_offset = *(uint32_t *)(header + 10);
+    int32_t bmp_w = *(int32_t *)(header + 18);
+    int32_t bmp_h = *(int32_t *)(header + 22);
+    uint16_t bpp = *(uint16_t *)(header + 28);
+    bool flipped = bmp_h > 0;
+    if (bmp_h < 0)
+        bmp_h = -bmp_h;
+
+    if (bpp != 1)
+    {
+        fs_close(&f);
+        return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
+    }
+
+    // BMP rows padded to 4-byte boundaries
+    int bmp_stride = ((bmp_w + 31) / 32) * 4;
+
+    // Output buffer uses tightly packed stride
+    int out_stride = (bmp_w + 7) / 8;
+    size_t out_size = out_stride * bmp_h;
+
+    uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
+    uint8_t *out_buf = malloc(out_size);
+    if (bmp_buf == NULL || out_buf == NULL)
+    {
+        free(bmp_buf);
+        free(out_buf);
+        fs_close(&f);
+        return luaL_error(L, "out of memory");
+    }
+
+    fs_seek(&f, pixel_offset, FS_SEEK_SET);
+    fs_read(&f, bmp_buf, bmp_stride * bmp_h);
+    fs_close(&f);
+
+    // Convert from BMP layout (bottom-up, 4-byte padded rows)
+    // to tightly packed top-down layout
+    memset(out_buf, 0, out_size);
+    for (int row = 0; row < bmp_h; row++)
+    {
+        int src_row = flipped ? (bmp_h - 1 - row) : row;
+        uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+        for (int col = 0; col < bmp_w; col++)
+        {
+            int src_bit = 7 - (col % 8);
+            int pixel = (src_line[col / 8] >> src_bit) & 1;
+
+            int dst_bit = 7 - (col % 8);
+            int dst_byte = row * out_stride + col / 8;
+            if (pixel)
+                out_buf[dst_byte] |= (1 << dst_bit);
+            else
+                out_buf[dst_byte] &= ~(1 << dst_bit);
+        }
+    }
+
+    free(bmp_buf);
+
+    // Push as Lua string (binary data), width, height
+    lua_pushlstring(L, (const char *)out_buf, out_size);
+    lua_pushinteger(L, bmp_w);
+    lua_pushinteger(L, bmp_h);
+
+    free(out_buf);
+    return 3;
 }
 
 static const luaL_Reg paint_funcs[] = {

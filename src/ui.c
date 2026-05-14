@@ -64,5 +64,5 @@ static void ui_thread(void *a, void *b, void *c)
     }
 }
 
-K_THREAD_DEFINE(ui_tid, 2048, ui_thread, NULL, NULL, NULL, 10, 0, 0);
+K_THREAD_DEFINE(ui_tid, 1024, ui_thread, NULL, NULL, NULL, 10, 0, 0);
 // SYS_INIT(input_init2, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
