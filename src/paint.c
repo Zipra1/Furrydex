@@ -16,7 +16,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "font8.h"
+#include "fonts/font8.h"
 
 // Every function here should be display agnostic. That way, it will be possible to use different types of displays later on.
 
@@ -398,6 +398,7 @@ void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int se
 {
     int center = 71; // todo: calculate based off kconfig
     int i = 0;
+    num_bubble = num_bubble-1;
     while (i <= num_bubble)
     {
         paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 4, 0);

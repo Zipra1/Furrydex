@@ -1,9 +1,11 @@
-#include "lua_thread.h"
 #include "lua/lua.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 #include <zephyr/shell/shell.h>
 #include <stdlib.h>
+
+#include "lua_thread.h"
+#include "ui.h"
 
 /*
 ⚠ This file was produced with generative ai.
@@ -106,6 +108,8 @@ static void lua_thread_entry(void *a, void *b, void *c)
     // lua_setfield(state, -2, "zephyr");
     lua_pop(state, 1);
 
+    lua_thread_update_priorities(atomic_get(&selected_page));
+
     int err = luaL_loadstring(state, slot->script);
     if (err)
     {
@@ -163,6 +167,7 @@ int lua_thread_start(const struct shell *shell, char *script)
             lua_slots[i].been_started = true;
             lua_slots[i].kill_requested = false;
             lua_slots[i].state = NULL;
+            lua_slots[i].capture_input = 2;
             k_thread_create(&lua_slots[i].thread,
                             lua_stacks[i],
                             K_THREAD_STACK_SIZEOF(lua_stacks[0]),
@@ -206,4 +211,17 @@ int get_current_lua_slot(void)
         }
     }
     return -1;
+}
+
+int lua_thread_update_priorities(int selected_slot)
+{
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (!lua_slots[i].in_use)
+            continue;
+
+        int prio = (i == selected_slot) ? LUA_THREAD_PRIO_FG : LUA_THREAD_PRIO_BG;
+        k_thread_priority_set(&lua_slots[i].thread, prio);
+    }
+    return 0;
 }

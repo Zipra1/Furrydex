@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include "lcd.h"
 #include "imgdata.h"
-#include "font8.h"
+#include "fonts/font8.h"
 #include "paint.h"
 #include "console.h"
 #include "usb.h"
@@ -204,11 +204,10 @@ int main(void)
     while (true)
     {
         k_mutex_lock(&paint_mutex, K_FOREVER);
-        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads, atomic_get(&selected_page));
         convertBuffer(main_buffer, output_buffer);
         k_mutex_unlock(&paint_mutex);
-
         invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+        // is there any way to invert it on the screen itself?
 
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);

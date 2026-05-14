@@ -66,7 +66,7 @@ static void input_thread(void *a, void *b, void *c)
     {
         printk("Error: button device %s is not ready\n",
                button.port->name);
-        return 0;
+        return;
     }
 
     ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
@@ -74,7 +74,7 @@ static void input_thread(void *a, void *b, void *c)
     {
         printk("Error %d: failed to configure %s pin %d\n",
                ret, button.port->name, button.pin);
-        return 0;
+        return;
     }
 
     ret = gpio_pin_interrupt_configure_dt(&button,
@@ -83,7 +83,7 @@ static void input_thread(void *a, void *b, void *c)
     {
         printk("Error %d: failed to configure interrupt on %s pin %d\n",
                ret, button.port->name, button.pin);
-        return 0;
+        return;
     }
 
     k_work_init_delayable(&button_work, button_work_handler);

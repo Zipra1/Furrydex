@@ -11,6 +11,8 @@
 #include "paint.h"
 #include "input.h"
 #include "lua_thread.h"
+#include "luazephyrlib.h"
+#include "imgdata.h"
 
 atomic_t selected_page = ATOMIC_INIT(0);
 
@@ -21,6 +23,7 @@ void page_left()
     {
         atomic_set(&selected_page, 0);
     }
+    lua_thread_update_priorities(atomic_get(&selected_page));
 }
 
 void page_right()
@@ -30,6 +33,7 @@ void page_right()
     {
         atomic_set(&selected_page, num_lua_threads);
     }
+    lua_thread_update_priorities(atomic_get(&selected_page));
 }
 
 static void ui_thread(void *a, void *b, void *c)
@@ -41,15 +45,20 @@ static void ui_thread(void *a, void *b, void *c)
         k_sem_take(&input_sem, K_FOREVER);
 
         int newly_pressed = inputs & ~prev_inputs;
-
-        if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_LEFT))
+        if (lua_slots[atomic_get(&selected_page)].capture_input != LUA_INPUT_CAPTURE)
         {
-            page_left();
+            if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_LEFT))
+            {
+                page_left();
+            }
+            if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_RIGHT))
+            {
+                page_right();
+            }
         }
-        if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_RIGHT))
-        {
-            page_right();
-        }
+        k_mutex_lock(&paint_mutex, K_FOREVER);
+        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
+        k_mutex_unlock(&paint_mutex);
 
         prev_inputs = inputs;
     }

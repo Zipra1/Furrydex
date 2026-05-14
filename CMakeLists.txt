@@ -43,7 +43,7 @@ target_sources(app PRIVATE
 
     src/main.c
     src/imgdata.c
-    src/font8.c
+    src/fonts/font8.c
     src/lcd.c
     src/paint.c
     src/console.c

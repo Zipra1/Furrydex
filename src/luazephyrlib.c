@@ -342,7 +342,7 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 /// INPUT ///
 /////////////
 
-int lua_get_input(lua_State *L)
+int lua_input_get(lua_State *L)
 {
     int input = (int)luaL_checknumber(L, 1);
 
@@ -354,8 +354,24 @@ int lua_get_input(lua_State *L)
     return 1;
 }
 
+int lua_input_capture(lua_State *L)
+{
+    int input = (int)luaL_checknumber(L, 1);
+    if (input < 0 || input > 3)
+    {
+        return luaL_error(L, "Invalid input. Usage:\n0 = No input\n1=Capture input\n2=Listen when selected\n3=Listen always\nDefault:2");
+    }
+
+    lua_slots[get_current_lua_slot()].capture_input = input;
+
+    int output = true; // Eventually, should output true or false based on whether user allowed or denied input capture
+    lua_pushboolean(L, output);
+    return 1;
+}
+
 static const luaL_Reg input_funcs[] = {
-    {"get_input", lua_get_input},
+    {"get_input", lua_input_get},
+    {"capture", lua_input_capture},
     {NULL, NULL},
 };
 
