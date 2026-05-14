@@ -144,6 +144,20 @@ void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
         shell_print(shell, "Lua script started in slot %d.", slot);
     }
 }
+SHELL_CMD_REGISTER(lua_lf, NULL, "Run the given lua file", cmd_lua_loadfile);
+
+void cmd_lua_kill(const struct shell *shell, size_t argc, char **argv)
+{
+    if(argc != 2){
+        shell_print(shell, "Incorrect number of arguments. Usage: lua_kill(slot)");
+    }
+    if(lua_thread_kill(atoi(argv[1]))==0){
+        shell_print(shell,"Lua script in slot %d killed", argv[1]);
+    }else{
+        shell_print(shell,"Failed to kill lua script in slot %d", argv[1]);
+    }
+}
+SHELL_CMD_REGISTER(lua_k, NULL, "Kill lua file in given slot", cmd_lua_kill);
 
 void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 {
@@ -178,7 +192,7 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(lua, NULL, "Execute lua code", cmd_lua);
-SHELL_CMD_REGISTER(lua_lf, NULL, "Run the given lua file", cmd_lua_loadfile);
+
 
 // PAINT
 #include "imgdata.h"
@@ -196,7 +210,7 @@ static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
     int r = atoi(argv[3]);
     int c = atoi(argv[4]);
 
-    paintFilledCircle(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, r, c);
+    paintFilledCircle(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, r, c);
 
     return 0;
 }
@@ -212,7 +226,7 @@ static int cmd_paint_bubbles(const struct shell *sh, size_t argc, char **argv)
     int num_bubbles = atoi(argv[1]);
     int selected_bubble = atoi(argv[2]);
 
-    paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_bubbles, selected_bubble);
+    paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_bubbles, selected_bubble);
 
     return 0;
 }

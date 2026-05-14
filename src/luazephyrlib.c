@@ -27,16 +27,54 @@
 #include "input.h"
 #include "lcd.h" // todo: ifdef here for lcd/epaper
 #include "imgdata.h"
+#include "lua_thread.h"
+#include "ui.h"
 
 K_MUTEX_DEFINE(paint_mutex);
 K_MUTEX_DEFINE(lua_paint_mutex);
 
+static int should_display(void)
+{
+    if (get_current_lua_slot() == atomic_get(&selected_page))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 static int lua_paint_display(lua_State *L)
 {
-    k_mutex_lock(&paint_mutex, K_FOREVER);
-    memcpy(IMAGE_DATA2, lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
-    k_mutex_unlock(&paint_mutex);
-    return 0; // no return values pushed to Lua. the return on a lua function just specifies the amount of values returned, not the actual value returned.
+    if (should_display())
+    {
+        k_mutex_lock(&paint_mutex, K_FOREVER);
+        if (!lua_isnoneornil(L, 1))
+        {
+            if (lua_isinteger(L, 1) && lua_tointeger(L, 1) == 1)
+            {
+                blitMask(main_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer, 0, 0);
+            }
+            else
+            {
+                size_t mask_len;
+                const uint8_t *mask = (const uint8_t *)luaL_checklstring(L, 1, &mask_len);
+                blitMask(main_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         mask, 0, 0);
+            }
+        }
+        else
+        {
+            memcpy(main_buffer, lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+        }
+        k_mutex_unlock(&paint_mutex);
+    }
+    return 0;
 }
 
 static int lua_paint_wait_for_display(lua_State *L)
@@ -46,10 +84,13 @@ static int lua_paint_wait_for_display(lua_State *L)
 
 static int lua_paint_clear(lua_State *L)
 {
-    int colour = luaL_optinteger(L, 1, 1);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    memset(lua_buffer, colour ? 0xFF : 0x00, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        int colour = luaL_optinteger(L, 1, 1);
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        memset(lua_buffer, colour ? 0xFF : 0x00, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0;
 }
 
@@ -58,9 +99,12 @@ static int lua_paint_pixel(lua_State *L)
     int x = luaL_checknumber(L, 1);
     int y = luaL_checknumber(L, 2);
     int colour = luaL_checknumber(L, 3);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintPixel(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, colour);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintPixel(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, colour);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0;
 }
 
@@ -71,9 +115,12 @@ static int lua_paint_rect(lua_State *L)
     int x2 = luaL_checknumber(L, 3);
     int y2 = luaL_checknumber(L, 4);
     int colour = luaL_checknumber(L, 5);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2, colour);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2, colour);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0; // no return values pushed to Lua
 }
 
@@ -83,12 +130,15 @@ static int lua_paint_circle(lua_State *L)
     int y = luaL_checknumber(L, 2);
     int r = luaL_checknumber(L, 3);
     int colour = luaL_checknumber(L, 4);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintFilledCircle(lua_buffer,
-                      CONFIG_FURRYDEX_DISPLAY_WIDTH,
-                      CONFIG_FURRYDEX_DISPLAY_HEIGHT,
-                      x, y, r, colour);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintFilledCircle(lua_buffer,
+                          CONFIG_FURRYDEX_DISPLAY_WIDTH,
+                          CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                          x, y, r, colour);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0; // no return values pushed to Lua
 }
 
@@ -102,9 +152,12 @@ static int lua_paint_character(lua_State *L)
     }
     int x = luaL_checknumber(L, 2);
     int y = luaL_checknumber(L, 3);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintCharacter(character, lua_buffer, x, y);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintCharacter(character, lua_buffer, x, y);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0; // no return values pushed to Lua
 }
 
@@ -114,9 +167,12 @@ static int lua_paint_text(lua_State *L)
     int y = luaL_checknumber(L, 2);
     int kerning = luaL_checknumber(L, 3);
     const char *text = luaL_checkstring(L, 4);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintText(lua_buffer, kerning, x, y, text);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintText(lua_buffer, kerning, x, y, text);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0; // no return values pushed to Lua
 }
 
@@ -127,9 +183,12 @@ static int lua_paint_text_wrap(lua_State *L)
     int kerning = luaL_checknumber(L, 3);
     int width = luaL_checknumber(L, 4);
     const char *text = luaL_checkstring(L, 5);
-    k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-    paintTextWrap(lua_buffer, kerning, x, y, width, text);
-    k_mutex_unlock(&lua_paint_mutex);
+    if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        paintTextWrap(lua_buffer, kerning, x, y, width, text);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
     return 0; // no return values pushed to Lua
 }
 
@@ -141,20 +200,28 @@ static int lua_paint_blit(lua_State *L)
     int src_h = luaL_checkinteger(L, 3);
     int x = luaL_checkinteger(L, 4);
     int y = luaL_checkinteger(L, 5);
-
-    const uint8_t *mask = NULL;
-    if (!lua_isnoneornil(L, 6))
+    if (should_display())
     {
-        size_t mask_len;
-        mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
+        const uint8_t *mask = NULL;
+        if (!lua_isnoneornil(L, 6))
+        {
+            size_t mask_len;
+            mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
 
-        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        blitMask(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, mask, x, y);
-    } else {
-        blit(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, x, y);
+            k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+            blitMask(lua_buffer,
+                     CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                     src,
+                     src_w, src_h,
+                     mask, x, y);
+        }
+        else
+        {
+            blit(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, x, y);
+        }
+
+        k_mutex_unlock(&lua_paint_mutex);
     }
-
-    k_mutex_unlock(&lua_paint_mutex);
     return 0;
 }
 
@@ -162,82 +229,92 @@ static int lua_paint_blit(lua_State *L)
 static int lua_paint_load_bmp(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
-
-    struct fs_file_t f;
-    fs_file_t_init(&f);
-    if (fs_open(&f, path, FS_O_READ) != 0) {
-        return luaL_error(L, "could not open %s", path);
-    }
-
-    uint8_t header[54];
-    fs_read(&f, header, 54);
-
-    if (header[0] != 'B' || header[1] != 'M') {
-        fs_close(&f);
-        return luaL_error(L, "not a BMP file");
-    }
-
-    uint32_t pixel_offset = *(uint32_t *)(header + 10);
-    int32_t  bmp_w        = *(int32_t  *)(header + 18);
-    int32_t  bmp_h        = *(int32_t  *)(header + 22);
-    uint16_t bpp          = *(uint16_t *)(header + 28);
-    bool flipped = bmp_h > 0;
-    if (bmp_h < 0) bmp_h = -bmp_h;
-
-    if (bpp != 1) {
-        fs_close(&f);
-        return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
-    }
-
-    // BMP rows padded to 4-byte boundaries
-    int bmp_stride = ((bmp_w + 31) / 32) * 4;
-
-    // Output buffer uses tightly packed stride
-    int out_stride = (bmp_w + 7) / 8;
-    size_t out_size = out_stride * bmp_h;
-
-    uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
-    uint8_t *out_buf = malloc(out_size);
-    if (bmp_buf == NULL || out_buf == NULL) {
-        free(bmp_buf);
-        free(out_buf);
-        fs_close(&f);
-        return luaL_error(L, "out of memory");
-    }
-
-    fs_seek(&f, pixel_offset, FS_SEEK_SET);
-    fs_read(&f, bmp_buf, bmp_stride * bmp_h);
-    fs_close(&f);
-
-    // Convert from BMP layout (bottom-up, 4-byte padded rows)
-    // to tightly packed top-down layout
-    memset(out_buf, 0, out_size);
-    for (int row = 0; row < bmp_h; row++) {
-        int src_row = flipped ? (bmp_h - 1 - row) : row;
-        uint8_t *src_line = bmp_buf + src_row * bmp_stride;
-
-        for (int col = 0; col < bmp_w; col++) {
-            int src_bit = 7 - (col % 8);
-            int pixel = (src_line[col / 8] >> src_bit) & 1;
-
-            int dst_bit  = 7 - (col % 8);
-            int dst_byte = row * out_stride + col / 8;
-            if (pixel)
-                out_buf[dst_byte] |= (1 << dst_bit);
-            else
-                out_buf[dst_byte] &= ~(1 << dst_bit);
+    if (should_display())
+    {
+        struct fs_file_t f;
+        fs_file_t_init(&f);
+        if (fs_open(&f, path, FS_O_READ) != 0)
+        {
+            return luaL_error(L, "could not open %s", path);
         }
+
+        uint8_t header[54];
+        fs_read(&f, header, 54);
+
+        if (header[0] != 'B' || header[1] != 'M')
+        {
+            fs_close(&f);
+            return luaL_error(L, "not a BMP file");
+        }
+
+        uint32_t pixel_offset = *(uint32_t *)(header + 10);
+        int32_t bmp_w = *(int32_t *)(header + 18);
+        int32_t bmp_h = *(int32_t *)(header + 22);
+        uint16_t bpp = *(uint16_t *)(header + 28);
+        bool flipped = bmp_h > 0;
+        if (bmp_h < 0)
+            bmp_h = -bmp_h;
+
+        if (bpp != 1)
+        {
+            fs_close(&f);
+            return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
+        }
+
+        // BMP rows padded to 4-byte boundaries
+        int bmp_stride = ((bmp_w + 31) / 32) * 4;
+
+        // Output buffer uses tightly packed stride
+        int out_stride = (bmp_w + 7) / 8;
+        size_t out_size = out_stride * bmp_h;
+
+        uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
+        uint8_t *out_buf = malloc(out_size);
+        if (bmp_buf == NULL || out_buf == NULL)
+        {
+            free(bmp_buf);
+            free(out_buf);
+            fs_close(&f);
+            return luaL_error(L, "out of memory");
+        }
+
+        fs_seek(&f, pixel_offset, FS_SEEK_SET);
+        fs_read(&f, bmp_buf, bmp_stride * bmp_h);
+        fs_close(&f);
+
+        // Convert from BMP layout (bottom-up, 4-byte padded rows)
+        // to tightly packed top-down layout
+        memset(out_buf, 0, out_size);
+        for (int row = 0; row < bmp_h; row++)
+        {
+            int src_row = flipped ? (bmp_h - 1 - row) : row;
+            uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+            for (int col = 0; col < bmp_w; col++)
+            {
+                int src_bit = 7 - (col % 8);
+                int pixel = (src_line[col / 8] >> src_bit) & 1;
+
+                int dst_bit = 7 - (col % 8);
+                int dst_byte = row * out_stride + col / 8;
+                if (pixel)
+                    out_buf[dst_byte] |= (1 << dst_bit);
+                else
+                    out_buf[dst_byte] &= ~(1 << dst_bit);
+            }
+        }
+
+        free(bmp_buf);
+
+        // Push as Lua string (binary data), width, height
+        lua_pushlstring(L, (const char *)out_buf, out_size);
+        lua_pushinteger(L, bmp_w);
+        lua_pushinteger(L, bmp_h);
+
+        free(out_buf);
+        return 3;
     }
-
-    free(bmp_buf);
-
-    // Push as Lua string (binary data), width, height
-    lua_pushlstring(L, (const char *)out_buf, out_size);
-    lua_pushinteger(L, bmp_w);
-    lua_pushinteger(L, bmp_h);
-
-    free(out_buf);
-    return 3;
+    return 0;
 }
 
 static const luaL_Reg paint_funcs[] = {
@@ -270,7 +347,7 @@ int lua_get_input(lua_State *L)
     int input = (int)luaL_checknumber(L, 1);
 
     k_mutex_lock(&inputs_mutex, K_FOREVER); // dunno if a mutex is necessary here. figured it doesn't hurt
-    int output = get_bit(inputs, input);    
+    int output = get_bit(inputs, input);
     k_mutex_unlock(&inputs_mutex);
 
     lua_pushinteger(L, output);

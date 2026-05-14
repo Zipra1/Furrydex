@@ -20,6 +20,7 @@
 #include "disk.h"
 #include "input.h"
 #include "ui.h"
+#include "lua_thread.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -31,7 +32,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
-
 
 #define DISK_NAME "SD"
 
@@ -47,12 +47,10 @@ LOG_MODULE_REGISTER(main);
 
 // static int lsdir(const char *path);
 
-
 /*
  *  Note the fatfs library is able to mount only strings inside _VOLUME_STRS
  *  in ffconf.h
  */
-
 
 // usb start
 static inline void print_baudrate(const struct device *dev)
@@ -141,12 +139,16 @@ static int enable_usb_device_next(void)
 // usb end
 
 unsigned char output_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
+
 int main(void)
 {
     int ret;
-
     initDisplay();
     printk("Display initialized\n");
+    invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+    invert(lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+    convertBuffer(main_buffer, output_buffer);
+    Display(25, 0, 36, 125, output_buffer);
 
     if (!device_is_ready(uart_dev))
     {
@@ -166,7 +168,7 @@ int main(void)
     if (mount_sd_card())
     {
         LOG_ERR("Failed to mount SD card");
-        //return -1;
+        // return -1;
     }
     else
     {
@@ -195,16 +197,15 @@ int main(void)
 
         // bool force = true;
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
-        msc_enabled = false;
     }
 
-    int i = -64;
+    blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 55, 77);
 
     while (true)
     {
         k_mutex_lock(&paint_mutex, K_FOREVER);
-        paintPageBubbles(IMAGE_DATA2, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 2, atomic_get(&selected_page));
-        convertBuffer(IMAGE_DATA2, output_buffer);
+        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads, atomic_get(&selected_page));
+        convertBuffer(main_buffer, output_buffer);
         k_mutex_unlock(&paint_mutex);
 
         invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);

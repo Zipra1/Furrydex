@@ -10,6 +10,7 @@
 
 #include "paint.h"
 #include "input.h"
+#include "lua_thread.h"
 
 atomic_t selected_page = ATOMIC_INIT(0);
 
@@ -25,9 +26,9 @@ void page_left()
 void page_right()
 {
     atomic_inc(&selected_page);
-    if (atomic_get(&selected_page) > 2)
+    if (atomic_get(&selected_page) > num_lua_threads)
     {
-        atomic_set(&selected_page, 2);
+        atomic_set(&selected_page, num_lua_threads);
     }
 }
 

@@ -70,15 +70,25 @@ void paintCharacter(char character, unsigned char *buf, int translate_width, int
 void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string)
 {
     int character_width = 5;
+    int line_height = 8;
     int len = strlen(string);
+    int current_x = 0;
+    int current_y = 0;
+
     for (int i = 0; i < len; i++)
     {
-        paintCharacter(string[i], buf, translate_width + (i * (character_width + kerning)), translate_height);
+        if (string[i] == '\n')
+        {
+            current_x = 0;
+            current_y += line_height;
+            continue;
+        }
+        paintCharacter(string[i], buf, translate_width + current_x, translate_height + current_y);
+        current_x += (character_width + kerning);
     }
 }
 
 int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width, const char *string)
-// This function can overflow into adjacent memory. Add a check that it's not beyond the buffer limits
 {
     int character_width = 5;
     int line_height = 8;
@@ -89,13 +99,20 @@ int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int tran
 
     for (int i = 0; i < len; i++)
     {
+        if (string[i] == '\n')
+        {
+            current_x = 0;
+            current_y += line_height;
+            continue;
+        }
+
         if (current_x == 0 && string[i] == ' ')
         {
             continue;
         }
 
         int word_end = i;
-        while (word_end < len && string[word_end] != ' ')
+        while (word_end < len && string[word_end] != ' ' && string[word_end] != '\n')
         {
             word_end++;
         }
