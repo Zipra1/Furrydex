@@ -342,13 +342,52 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 
 int lua_input_get(lua_State *L)
 {
-    int input = (int)luaL_checknumber(L, 1);
+    int current_lua_slot = get_current_lua_slot();
+    if (lua_slots[current_lua_slot].capture_input == LUA_INPUT_NONE)
+    {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+    else if ((lua_slots[current_lua_slot].capture_input == LUA_INPUT_LISTEN_GATED) && (current_lua_slot != atomic_get(&selected_page)))
+    {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+    const char *name = luaL_checkstring(L, 1);
+    int input = -1;
 
-    k_mutex_lock(&inputs_mutex, K_FOREVER); // dunno if a mutex is necessary here. figured it doesn't hurt
-    int output = get_bit(inputs, input);
-    k_mutex_unlock(&inputs_mutex);
+    static const struct
+    {
+        const char *name;
+        int bit;
+    } input_map[] = {
+        {"left", CONFIG_FURRYDEX_INPUT_LEFT},
+        {"right", CONFIG_FURRYDEX_INPUT_RIGHT},
+        {"up", CONFIG_FURRYDEX_INPUT_UP},
+        {"down", CONFIG_FURRYDEX_INPUT_DOWN},
+        {"a", CONFIG_FURRYDEX_INPUT_A},
+        {"b", CONFIG_FURRYDEX_INPUT_B},
+        {"c", CONFIG_FURRYDEX_INPUT_C},
+    };
 
-    lua_pushinteger(L, output);
+    for (int i = 0; i < ARRAY_SIZE(input_map); i++)
+    {
+        if (strcmp(input_map[i].name, name) == 0)
+        {
+            input = input_map[i].bit;
+            break;
+        }
+    }
+
+    if (input < 0)
+    {
+        return luaL_error(L, "Unknown input: '%s'. Please select from left right up down a b c", name);
+    }
+
+    int output = 0;
+    output = get_bit(atomic_get(&inputs), input);
+
+    lua_pushboolean(L, output);
     return 1;
 }
 

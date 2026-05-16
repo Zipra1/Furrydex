@@ -24,22 +24,23 @@ local blocks = {}
 local blocks_broken = 0
 
 local function reset()
+    input.capture(2)
     paddle_pos = 71
     ball_pos_x = 71
     ball_pos_y = 220
     blocks_broken = 0
     ball_speed = 4
     ball_angle = math.pi / 2.5
-    while input.get_input(3) == 0 do
+    while not input.get_input("a") do
         paint.clear()
         paint.text(20, 50, 1, "Press A to start")
         paint.text(14, 60, 1, "(UP/DOWN) # Rows: ")
         paint.text(115, 60, 1, block_rows)
-        if input.get_input(4) == 1 then
+        if input.get_input("up") then
             block_rows = block_rows + 1
             zephyr.sleep(100)
         end
-        if input.get_input(7) == 1 then
+        if input.get_input("down") then
             block_rows = block_rows - 1
             zephyr.sleep(100)
         end
@@ -81,46 +82,35 @@ local function reset()
         paint.wait_for_display()
         paint.display()
     end
+    input.capture(1)
     paint.text(20, 50, 1, "Starting in 3")
     paint.wait_for_display()
     paint.display()
-    zephyr.sleep(1000)
+    zephyr.sleep(500)
     paint.text(20, 50, 1, "Starting in 2")
     paint.wait_for_display()
     paint.display()
-    zephyr.sleep(1000)
+    zephyr.sleep(500)
     paint.text(20, 50, 1, "Starting in 1")
     paint.wait_for_display()
     paint.display()
-    zephyr.sleep(1000)
+    zephyr.sleep(500)
 end
 
 reset()
 
 while true do
     paint.clear() -- Clear the screen
-    --paint.text(30,30,1,"meow!")
-    --paint.text(30,40,1,input.get_input(0)) -- NC
-    --paint.text(30,50,1,input.get_input(1)) -- B
-    --paint.text(30,60,1,input.get_input(2)) -- C
-    --paint.text(30,70,1,input.get_input(3)) -- A
-    --paint.text(30,80,1,input.get_input(4)) -- up
-    --paint.text(30,90,1,input.get_input(5)) -- right
-    --paint.text(30,100,1,input.get_input(6)) -- left
-    --paint.text(30,110,1,input.get_input(7)) -- down
-    --paint.text(30,120,1,paddle_pos)
-    --paint.text(30,130,1,ball_pos_x)
-    --paint.text(30,140,1,ball_pos_y)
     paint.text(30, 30, 1, blocks_broken)
 
     -------------------
     -- PADDLE INPUTS --
     -------------------
-    if input.get_input(5) == 1 then -- right
+    if input.get_input("right") then -- right
         if paddle_pos < (132 - paddle_width) then
             paddle_pos = paddle_pos + 3
         end
-    elseif input.get_input(6) == 1 then -- left
+    elseif input.get_input("left") then -- left
         if paddle_pos > (10 + paddle_width) then
             paddle_pos = paddle_pos - 3
         end

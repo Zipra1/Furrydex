@@ -4,6 +4,7 @@
 #include <zephyr/init.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/sys/atomic.h>
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -23,8 +24,7 @@ static struct gpio_callback button_cb_data;
 
 static struct k_work_delayable button_work;
 
-K_MUTEX_DEFINE(inputs_mutex);
-int inputs = 0;
+atomic_t inputs = ATOMIC_INIT(0);
 
 static void button_work_handler(struct k_work *work)
 {
@@ -34,10 +34,9 @@ static void button_work_handler(struct k_work *work)
         printk("SR165 read failed\n");
         return;
     }
-    k_mutex_lock(&inputs_mutex, K_FOREVER);
-    int prev_inputs = inputs;
-    inputs = local_inputs;
-    k_mutex_unlock(&inputs_mutex);
+
+    int prev_inputs = atomic_get(&inputs);
+    atomic_set(&inputs, local_inputs);
 
     if (local_inputs != prev_inputs)
     {

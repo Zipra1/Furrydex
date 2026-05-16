@@ -148,13 +148,17 @@ SHELL_CMD_REGISTER(lua_lf, NULL, "Run the given lua file", cmd_lua_loadfile);
 
 void cmd_lua_kill(const struct shell *shell, size_t argc, char **argv)
 {
-    if(argc != 2){
+    if (argc != 2)
+    {
         shell_print(shell, "Incorrect number of arguments. Usage: lua_kill(slot)");
     }
-    if(lua_thread_kill(atoi(argv[1]))==0){
-        shell_print(shell,"Lua script in slot %d killed", argv[1]);
-    }else{
-        shell_print(shell,"Failed to kill lua script in slot %d", argv[1]);
+    if (lua_thread_kill(atoi(argv[1])) == 0)
+    {
+        shell_print(shell, "Lua script in slot %d killed", argv[1]);
+    }
+    else
+    {
+        shell_print(shell, "Failed to kill lua script in slot %d", argv[1]);
     }
 }
 SHELL_CMD_REGISTER(lua_k, NULL, "Kill lua file in given slot", cmd_lua_kill);
@@ -192,7 +196,6 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(lua, NULL, "Execute lua code", cmd_lua);
-
 
 // PAINT
 #include "imgdata.h"
@@ -243,17 +246,29 @@ static int cmd_info(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    
+
     shell_print(sh, "Built %s %s", __DATE__, __TIME__);
     shell_print(sh, "Board: %s", CONFIG_BOARD);
 
+#ifdef CONFIG_FURRYDEX_DISPLAY_TYPE_LCD
+    shell_print(sh, "Display type: LCD");
+#endif
+
+#ifdef CONFIG_FURRYDEX_DISPLAY_TYPE_EPD
+    shell_print(sh, "Display type: EPD");
+#endif
+
+    shell_print(sh, "Resolution: %d x %d", CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT);
+
     int index = 0;
     const char *name;
-    while (fs_readmount(&index, &name) == 0) {
+    while (fs_readmount(&index, &name) == 0)
+    {
         shell_print(sh, "Mount point [%d]: %s", index, name);
         index++;
     }
-    if(index == 0){
+    if (index == 0)
+    {
         shell_error(sh, "No disks mounted!!!");
     }
 

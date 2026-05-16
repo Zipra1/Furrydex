@@ -36,6 +36,13 @@ void page_right()
     lua_thread_update_priorities(atomic_get(&selected_page));
 }
 
+void draw_ui()
+{
+    k_mutex_lock(&paint_mutex, K_FOREVER);
+    paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
+    k_mutex_unlock(&paint_mutex);
+}
+
 static void ui_thread(void *a, void *b, void *c)
 {
     int prev_inputs = 0;
@@ -44,7 +51,7 @@ static void ui_thread(void *a, void *b, void *c)
     {
         k_sem_take(&input_sem, K_FOREVER);
 
-        int newly_pressed = inputs & ~prev_inputs;
+        int newly_pressed = atomic_get(&inputs) & ~prev_inputs;
         if (lua_slots[atomic_get(&selected_page)].capture_input != LUA_INPUT_CAPTURE)
         {
             if (get_bit(newly_pressed, CONFIG_FURRYDEX_INPUT_LEFT))
@@ -56,11 +63,8 @@ static void ui_thread(void *a, void *b, void *c)
                 page_right();
             }
         }
-        k_mutex_lock(&paint_mutex, K_FOREVER);
-        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
-        k_mutex_unlock(&paint_mutex);
 
-        prev_inputs = inputs;
+        prev_inputs = atomic_get(&inputs);
     }
 }
 

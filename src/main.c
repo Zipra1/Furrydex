@@ -203,6 +203,7 @@ int main(void)
 
     while (true)
     {
+        draw_ui();
         k_mutex_lock(&paint_mutex, K_FOREVER);
         convertBuffer(main_buffer, output_buffer);
         k_mutex_unlock(&paint_mutex);

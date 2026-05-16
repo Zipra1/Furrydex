@@ -64,6 +64,36 @@ menu "Input mapping"
 	default 5
 	help
 		The shift register bit corresponding to the right input (0-7)
+
+	config FURRYDEX_INPUT_UP
+	int "The shift register bit corresponding to the up input (0-7)"
+	default 4
+	help
+		The shift register bit corresponding to the up input (0-7)
+
+	config FURRYDEX_INPUT_DOWN
+	int "The shift register bit corresponding to the down input (0-7)"
+	default 7
+	help
+		The shift register bit corresponding to the down input (0-7)
+
+	config FURRYDEX_INPUT_A
+	int "The shift register bit corresponding to the A input (0-7)"
+	default 3
+	help
+		The shift register bit corresponding to the A input (0-7)
+
+	config FURRYDEX_INPUT_B
+	int "The shift register bit corresponding to the B input (0-7)"
+	default 1
+	help
+		The shift register bit corresponding to the B input (0-7)
+
+	config FURRYDEX_INPUT_C
+	int "The shift register bit corresponding to the C input (0-7)"
+	default 2
+	help
+		The shift register bit corresponding to the C input (0-7)
 endmenu
 
 menu "Lua options"
