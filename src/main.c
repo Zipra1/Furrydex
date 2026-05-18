@@ -41,8 +41,8 @@ USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Macroplastics", "Furrydex", "1.00");
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
 /* The devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led0)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+// #define LED0_NODE DT_ALIAS(led0)
+// static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 LOG_MODULE_REGISTER(main);
 

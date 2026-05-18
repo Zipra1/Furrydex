@@ -11,6 +11,8 @@
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include "ui.h"
+#include "paint.h"
+#include "disk.h"
 
 K_MUTEX_DEFINE(page_select_mutex);
 
@@ -154,11 +156,11 @@ void cmd_lua_kill(const struct shell *shell, size_t argc, char **argv)
     }
     if (lua_thread_kill(atoi(argv[1])) == 0)
     {
-        shell_print(shell, "Lua script in slot %d killed", argv[1]);
+        shell_print(shell, "Lua script in slot %s killed", argv[1]);
     }
     else
     {
-        shell_print(shell, "Failed to kill lua script in slot %d", argv[1]);
+        shell_print(shell, "Failed to kill lua script in slot %s", argv[1]);
     }
 }
 SHELL_CMD_REGISTER(lua_k, NULL, "Kill lua file in given slot", cmd_lua_kill);
@@ -187,7 +189,7 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
     }
     else if (argc == 1)
     {
-        shell_print(shell, "Lua 5.4.4 %i", L);
+        shell_print(shell, "Lua 5.4.4");
     }
     else
     {
@@ -276,3 +278,23 @@ static int cmd_info(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(info, NULL, "Print furrydex info to console", cmd_info);
+
+// LS
+
+static int cmd_ls(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+
+    if (argc != 2)
+    {
+        shell_error(sh, "Usage: ls <directory>\nExample: ls /SD:/folder/");
+        return -EINVAL;
+    }
+
+    lsdir(argv[1]);
+
+    return 0;
+}
+
+SHELL_CMD_REGISTER(ls, NULL, "List files and directories of a directory", cmd_ls);

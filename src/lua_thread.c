@@ -176,9 +176,9 @@ int num_lua_threads = 0;
 
 int lua_thread_start(const struct shell *shell, char *script, char *name)
 {
-    if (strlen(name) > 64)
+    if (strlen(name) > LUA_THREAD_MAX_NAME_LEN)
     {
-        return;
+        return -ENOMEM;
     }
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {

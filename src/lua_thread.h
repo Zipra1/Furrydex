@@ -6,6 +6,7 @@
 
 #define LUA_THREAD_PRIO_FG (K_LOWEST_APPLICATION_THREAD_PRIO - 2)
 #define LUA_THREAD_PRIO_BG  K_LOWEST_APPLICATION_THREAD_PRIO
+#define LUA_THREAD_MAX_NAME_LEN 64
 
 typedef struct {
     struct k_thread thread;
@@ -15,7 +16,7 @@ typedef struct {
     bool been_started;
     volatile bool kill_requested;
     lua_State *state;
-    char name[64];
+    char name[LUA_THREAD_MAX_NAME_LEN];
     int capture_input;
     // 0 = no inputs
     // 1 = capture
@@ -35,5 +36,6 @@ extern int num_lua_threads;
 int lua_thread_start(const struct shell *shell, char *script, char *name);
 int lua_thread_kill(int slot);
 int get_current_lua_slot(void);
+int lua_thread_update_priorities(int selected_slot);
 
 #endif

@@ -80,6 +80,7 @@ static int lua_paint_display(lua_State *L)
 static int lua_paint_wait_for_display(lua_State *L)
 {
     waitForTE();
+    return 0;
 }
 
 static int lua_paint_clear(lua_State *L)
@@ -145,7 +146,7 @@ static int lua_paint_circle(lua_State *L)
 static int lua_paint_character(lua_State *L)
 {
     size_t len;
-    int character = luaL_checklstring(L, 1, &len);
+    const char *character = luaL_checklstring(L, 1, &len);
     if (len != 1)
     {
         return luaL_argerror(L, 1, "Expected single character, use text or text_wrap for a string");
@@ -155,7 +156,7 @@ static int lua_paint_character(lua_State *L)
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintCharacter(character, lua_buffer, x, y);
+        paintCharacter(character[0], lua_buffer, x, y);
         k_mutex_unlock(&lua_paint_mutex);
     }
     return 0; // no return values pushed to Lua
@@ -345,13 +346,13 @@ static const struct
     const char *name;
     int bit;
 } input_map[] = {
-    {"left", CONFIG_FURRYDEX_INPUT_LEFT},
-    {"right", CONFIG_FURRYDEX_INPUT_RIGHT},
-    {"up", CONFIG_FURRYDEX_INPUT_UP},
-    {"down", CONFIG_FURRYDEX_INPUT_DOWN},
-    {"a", CONFIG_FURRYDEX_INPUT_A},
-    {"b", CONFIG_FURRYDEX_INPUT_B},
-    {"c", CONFIG_FURRYDEX_INPUT_C},
+    {"LEFT", CONFIG_FURRYDEX_INPUT_LEFT},
+    {"RIGHT", CONFIG_FURRYDEX_INPUT_RIGHT},
+    {"UP", CONFIG_FURRYDEX_INPUT_UP},
+    {"DOWN", CONFIG_FURRYDEX_INPUT_DOWN},
+    {"A", CONFIG_FURRYDEX_INPUT_A},
+    {"B", CONFIG_FURRYDEX_INPUT_B},
+    {"C", CONFIG_FURRYDEX_INPUT_C},
 };
 #define INPUT_MAP_SIZE ARRAY_SIZE(input_map)
 
@@ -406,9 +407,6 @@ LUAMOD_API int luaopen_input(lua_State *L)
     for (int i = 0; i < (int)INPUT_MAP_SIZE; i++) {
         char key[16];
         snprintf(key, sizeof(key), "%s", input_map[i].name);
-        /* Uppercase the key */
-        for (char *p = key; *p; p++)
-            *p = (char)toupper((unsigned char)*p);
         
         // Correctly shift the hardware bit index into a byte mask
         lua_pushinteger(L, 1 << input_map[i].bit);
