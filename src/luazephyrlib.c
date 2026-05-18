@@ -340,6 +340,21 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 /// INPUT ///
 /////////////
 
+static const struct
+{
+    const char *name;
+    int bit;
+} input_map[] = {
+    {"left", CONFIG_FURRYDEX_INPUT_LEFT},
+    {"right", CONFIG_FURRYDEX_INPUT_RIGHT},
+    {"up", CONFIG_FURRYDEX_INPUT_UP},
+    {"down", CONFIG_FURRYDEX_INPUT_DOWN},
+    {"a", CONFIG_FURRYDEX_INPUT_A},
+    {"b", CONFIG_FURRYDEX_INPUT_B},
+    {"c", CONFIG_FURRYDEX_INPUT_C},
+};
+#define INPUT_MAP_SIZE ARRAY_SIZE(input_map)
+
 int lua_input_get(lua_State *L)
 {
     int current_lua_slot = get_current_lua_slot();
@@ -353,39 +368,11 @@ int lua_input_get(lua_State *L)
         lua_pushboolean(L, false);
         return 1;
     }
-    const char *name = luaL_checkstring(L, 1);
-    int input = -1;
 
-    static const struct
-    {
-        const char *name;
-        int bit;
-    } input_map[] = {
-        {"left", CONFIG_FURRYDEX_INPUT_LEFT},
-        {"right", CONFIG_FURRYDEX_INPUT_RIGHT},
-        {"up", CONFIG_FURRYDEX_INPUT_UP},
-        {"down", CONFIG_FURRYDEX_INPUT_DOWN},
-        {"a", CONFIG_FURRYDEX_INPUT_A},
-        {"b", CONFIG_FURRYDEX_INPUT_B},
-        {"c", CONFIG_FURRYDEX_INPUT_C},
-    };
+    int input = luaL_checkinteger(L, 1);
 
-    for (int i = 0; i < ARRAY_SIZE(input_map); i++)
-    {
-        if (strcmp(input_map[i].name, name) == 0)
-        {
-            input = input_map[i].bit;
-            break;
-        }
-    }
-
-    if (input < 0)
-    {
-        return luaL_error(L, "Unknown input: '%s'. Please select from left right up down a b c", name);
-    }
-
-    int output = 0;
-    output = get_bit(atomic_get(&inputs), input);
+    int output = atomic_get(&inputs) & input;
+    //output = get_bit(atomic_get(&inputs), input);
 
     lua_pushboolean(L, output);
     return 1;
@@ -415,6 +402,19 @@ static const luaL_Reg input_funcs[] = {
 LUAMOD_API int luaopen_input(lua_State *L)
 {
     luaL_newlib(L, input_funcs);
+
+    for (int i = 0; i < (int)INPUT_MAP_SIZE; i++) {
+        char key[16];
+        snprintf(key, sizeof(key), "%s", input_map[i].name);
+        /* Uppercase the key */
+        for (char *p = key; *p; p++)
+            *p = (char)toupper((unsigned char)*p);
+        
+        // Correctly shift the hardware bit index into a byte mask
+        lua_pushinteger(L, 1 << input_map[i].bit);
+        lua_setfield(L, -2, key);   // ← sets input.LEFT, input.RIGHT, etc.
+    }
+
     return 1;
 }
 

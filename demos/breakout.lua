@@ -31,16 +31,16 @@ local function reset()
     blocks_broken = 0
     ball_speed = 4
     ball_angle = math.pi / 2.5
-    while not input.get_input("a") do
+    while not input.get_input(input.A) do
         paint.clear()
         paint.text(20, 50, 1, "Press A to start")
         paint.text(14, 60, 1, "(UP/DOWN) # Rows: ")
         paint.text(115, 60, 1, block_rows)
-        if input.get_input("up") then
+        if input.get_input(input.UP) then
             block_rows = block_rows + 1
             zephyr.sleep(100)
         end
-        if input.get_input("down") then
+        if input.get_input(input.DOWN) then
             block_rows = block_rows - 1
             zephyr.sleep(100)
         end
@@ -106,11 +106,11 @@ while true do
     -------------------
     -- PADDLE INPUTS --
     -------------------
-    if input.get_input("right") then -- right
+    if input.get_input(input.RIGHT) then -- right
         if paddle_pos < (132 - paddle_width) then
             paddle_pos = paddle_pos + 3
         end
-    elseif input.get_input("left") then -- left
+    elseif input.get_input(input.LEFT) then -- left
         if paddle_pos > (10 + paddle_width) then
             paddle_pos = paddle_pos - 3
         end
