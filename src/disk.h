@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-static int mount_sd_card(void);
-static int lsdir(const char *path);
+int mount_sd_card(void);
+int lsdir(const char *path);
 
 #endif

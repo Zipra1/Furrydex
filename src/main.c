@@ -21,6 +21,7 @@
 #include "input.h"
 #include "ui.h"
 #include "lua_thread.h"
+#include "ui.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
