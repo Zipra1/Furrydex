@@ -3,7 +3,8 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chapter 1 - Furrydex Lua</title>
+        <title>Furrydex - Lua</title>
+        <meta name="robots" content="noindex">
 
 
         <!-- Custom HTML head -->
@@ -35,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fe7efb02.js";
+            window.path_to_searchindex_js = "searchindex-080afbc3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c022006f.js"></script>
+        <script src="toc-09cf0dd6.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Furrydex Lua</h1>
+                    <h1 class="menu-title">Furrydex - Lua</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -174,7 +175,354 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="chapter-1"><a class="header" href="#chapter-1">Chapter 1</a></h1>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>A Furrydex can be easily programmed and modified with Lua scripts. You can create/edit Lua scripts over a USB connection, or through other Lua scripts.</p>
+<p>Don’t own a furrydex? Currently, you can only make them. But in the future, they’ll be for sale at <a href="https://www.macroplastics.ca">macroplastics.ca</a></p>
+<h3 id="whats-here-whats-where"><a class="header" href="#whats-here-whats-where">What’s here, what’s where?</a></h3>
+<p>This is the documentation for the software side of the furrydex; custom Lua functions and their corresponding C code.</p>
+<p>To get started programming a Furrydex, continue to the next section: Uploading Lua</p>
+<p>If you’re looking for hardware information, check <a href="meow">meow.com</a> for the hardware docs.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="uploading-lua-1"><a href="#uploading-lua-1" class="header">Uploading Lua</a></h1>
+<h2 id="uploading-lua"><a class="header" href="#uploading-lua">Uploading Lua</a></h2>
+<p>The easiest way to program the Furrydex is by plugging it into a device that can edit text. A desktop is preferred, but a phone will work too.</p>
+<p>Once plugged in, it will appear as a storage device containing all the files in the Furrydex. From here, you can freely edit the files in the Furrydex.</p>
+<p>The Furrydex also (will) come preloaded with basic tools to manage files, but using an external device is more effective.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="lua-functions"><a class="header" href="#lua-functions">Lua functions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="paint"><a class="header" href="#paint">paint</a></h1>
+<p>The paint library is used to draw shapes to Lua’s render buffer and push them to the main render buffer, which is then displayed on the screen.</p>
+<pre><code class="language-lua">-- Include this at the top of your script to use paint:
+local paint = require("paint")
+</code></pre>
+<h2 id="wait_for_display"><a class="header" href="#wait_for_display">wait_for_display()</a></h2>
+<p>Waits until display sends frame trigger signal. Should be put before <code>display()</code> in most cases.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.wait_for_display()
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_wait_for_display(lua_State *L)
+{
+    waitForTE();
+    return 0;
+}
+</code></pre>
+<h2 id="display"><a class="header" href="#display">display()</a></h2>
+<p>If the current script should be displaying, copy the Lua render buffer to the main render buffer. The Lua render buffer is not visible until this is called.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.display()
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_display(lua_State *L)
+{
+    if (should_display())
+    {
+        k_mutex_lock(&amp;paint_mutex, K_FOREVER);
+        if (!lua_isnoneornil(L, 1))
+        {
+            if (lua_isinteger(L, 1) &amp;&amp; lua_tointeger(L, 1) == 1)
+            {
+                blitMask(main_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer, 0, 0);
+            }
+            else
+            {
+                size_t mask_len;
+                const uint8_t *mask = (const uint8_t *)luaL_checklstring(L, 1, &amp;mask_len);
+                blitMask(main_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         lua_buffer,
+                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                         mask, 0, 0);
+            }
+        }
+        else
+        {
+            memcpy(main_buffer, lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+        }
+        k_mutex_unlock(&amp;paint_mutex);
+    }
+    return 0;
+}
+</code></pre>
+<h2 id="clearoptintegercolour"><a class="header" href="#clearoptintegercolour">clear(<code>optinteger(colour)</code>)</a></h2>
+<p>Set the entire Lua render buffer to white (1). If provided with an integer of 0-1, then it will set the entire Lua render buffer to that colour.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.clear() -- Set entire buffer to white
+paint.clear(1) -- Same as above
+paint.clear(0) -- Set entire buffer to black
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_clear(lua_State *L)
+{
+    if (should_display())
+    {
+        int colour = luaL_optinteger(L, 1, 1);
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        memset(lua_buffer, colour ? 0xFF : 0x00, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0;
+}
+</code></pre>
+<h2 id="pixelxycolour"><a class="header" href="#pixelxycolour">pixel(<code>x</code>,<code>y</code>,<code>colour</code>)</a></h2>
+<p>Set a single pixel to colour. 1 = white, 0 = black.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.pixel(30,20,0)
+</code></pre>
+<pre><code class="language-c">// C
+
+static int lua_paint_pixel(lua_State *L)
+{
+    int x = luaL_checknumber(L, 1);
+    int y = luaL_checknumber(L, 2);
+    int colour = luaL_checknumber(L, 3);
+    if (should_display())
+    {
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        paintPixel(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, colour);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0;
+}
+</code></pre>
+<h2 id="rectx1y1x2y2colour"><a class="header" href="#rectx1y1x2y2colour">rect(<code>x1</code>,<code>y1</code>,<code>x2</code>,<code>y2</code>,<code>colour</code>)</a></h2>
+<p>Draw a rectangle from x1,y1 to x2,y2 with colour. 1 = white, 0 = black.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.rect(30,30,50,50,0) -- Draw 20x20 black rectangle
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_rect(lua_State *L)
+{
+    int x1 = luaL_checknumber(L, 1);
+    int y1 = luaL_checknumber(L, 2);
+    int x2 = luaL_checknumber(L, 3);
+    int y2 = luaL_checknumber(L, 4);
+    int colour = luaL_checknumber(L, 5);
+    if (should_display())
+    {
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        paintRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2, colour);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0; // no return values pushed to Lua
+}
+</code></pre>
+<h2 id="circlexyradiuscolour"><a class="header" href="#circlexyradiuscolour">circle(<code>x</code>,<code>y</code>,<code>radius</code>,<code>colour</code>)</a></h2>
+<p>Draw a circle at position <code>x</code>,<code>y</code> with radius and colour. 1 = white, 0 = black.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.circle(30,20,10,0) -- Draw a black circle
+paint.circle(30,20,5,1) -- Draw a smaller white circle over top the previous
+</code></pre>
+<pre><code class="language-c">static int lua_paint_circle(lua_State *L)
+{
+    int x = luaL_checknumber(L, 1);
+    int y = luaL_checknumber(L, 2);
+    int r = luaL_checknumber(L, 3);
+    int colour = luaL_checknumber(L, 4);
+    if (should_display())
+    {
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        paintFilledCircle(lua_buffer,
+                          CONFIG_FURRYDEX_DISPLAY_WIDTH,
+                          CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                          x, y, r, colour);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0; // no return values pushed to Lua
+}
+</code></pre>
+<h2 id="charactercharacterxy"><a class="header" href="#charactercharacterxy">character(<code>character</code>,<code>x</code>,<code>y</code>)</a></h2>
+<p>Draw a single character at position <code>x</code>,<code>y</code></p>
+<p>Expected to be deprecated in the near future, use <code>text</code>.</p>
+<h2 id="textxykerningstring"><a class="header" href="#textxykerningstring">text(<code>x</code>,<code>y</code>,<code>kerning</code>,<code>string</code>)</a></h2>
+<p>Draw text <code>string</code> at position <code>x</code>,<code>y</code> with spacing between letters of <code>kerning</code>
+Use \n to make a newline.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.text(20,10,1,"Hello World")
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_text(lua_State *L)
+{
+    int x = luaL_checknumber(L, 1);
+    int y = luaL_checknumber(L, 2);
+    int kerning = luaL_checknumber(L, 3);
+    const char *text = luaL_checkstring(L, 4);
+    if (should_display())
+    {
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        paintText(lua_buffer, kerning, x, y, text);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0; // no return values pushed to Lua
+}
+</code></pre>
+<h2 id="text_wrapxykerningwidthstring"><a class="header" href="#text_wrapxykerningwidthstring">text_wrap(<code>x</code>,<code>y</code>,<code>kerning</code>,<code>width</code>,<code>string</code>)</a></h2>
+<p>Draw text <code>string</code> at position <code>x</code>,<code>y</code> with spacing between letters of <code>kerning</code> and a box width of <code>width</code>. If a word were to make the lines width exceed <code>width</code>, it will be moved to the next line.</p>
+<pre><code class="language-lua">-- Usage in Lua
+paint.text_wrap(20,10,1,60,"This text is so long that it will wrap around. Look at me go! I'm wrapping all the way around, making a big box of text that doesn't spill off screen!")
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_text_wrap(lua_State *L)
+{
+    int x = luaL_checknumber(L, 1);
+    int y = luaL_checknumber(L, 2);
+    int kerning = luaL_checknumber(L, 3);
+    int width = luaL_checknumber(L, 4);
+    const char *text = luaL_checkstring(L, 5);
+    if (should_display())
+    {
+        k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+        paintTextWrap(lua_buffer, kerning, x, y, width, text);
+        k_mutex_unlock(&amp;lua_paint_mutex);
+    }
+    return 0; // no return values pushed to Lua
+}
+</code></pre>
+<h2 id="blitimgimg_wimg_hxy-optmask"><a class="header" href="#blitimgimg_wimg_hxy-optmask">blit(<code>img</code>,<code>img_w</code>,<code>img_h</code>,<code>x</code>,<code>y</code>, <code>opt(mask)</code>)</a></h2>
+<p>Paint image <code>img</code> of width <code>img_w</code> and height <code>img_h</code> at coordinates <code>x</code>, <code>y</code> with optional mask <code>mask</code></p>
+<p>If no mask is provided, the entire image bounds will be treated as opaque. The mask should be the same dimensions as <code>img</code></p>
+<pre><code class="language-lua">-- Usage in Lua
+-- Images can be made manually, too. But loading a file is easy
+local image, width, height = paint.load_bmp("/SD:/blit/blit_test.bmp")
+
+-- In this case, the mask is equal to the image, but it would more commonly be a silhouette of what you want to display.
+local mask = image
+paint.blit(image, width, height, 10, 40)
+</code></pre>
+<pre><code class="language-c">static int lua_paint_blit(lua_State *L)
+{
+    size_t src_len;
+    const uint8_t *src = (const uint8_t *)luaL_checklstring(L, 1, &amp;src_len);
+    int src_w = luaL_checkinteger(L, 2);
+    int src_h = luaL_checkinteger(L, 3);
+    int x = luaL_checkinteger(L, 4);
+    int y = luaL_checkinteger(L, 5);
+    if (should_display())
+    {
+        const uint8_t *mask = NULL;
+        if (!lua_isnoneornil(L, 6))
+        {
+            size_t mask_len;
+            mask = (const uint8_t *)luaL_checklstring(L, 6, &amp;mask_len);
+
+            k_mutex_lock(&amp;lua_paint_mutex, K_FOREVER);
+            blitMask(lua_buffer,
+                     CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                     src,
+                     src_w, src_h,
+                     mask, x, y);
+        }
+        else
+        {
+            blit(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, x, y);
+        }
+
+        k_mutex_unlock(&amp;lua_paint_mutex);
+        lua_gc(L, LUA_GCSTEP, 100);
+    }
+    return 0;
+}
+</code></pre>
+<h2 id="load_bmpdirectory"><a class="header" href="#load_bmpdirectory">load_bmp(<code>directory</code>)</a></h2>
+<p>Takes string <code>directory</code> and returns <code>image</code>, <code>width</code>, <code>height</code> of the bitmap.
+Must be a 1bpp (black and white) <code>.bmp</code> file. Invalid files will either cause an error, or not display properly.</p>
+<pre><code class="language-lua">-- Usage in Lua:
+local image, width, height = paint.load_bmp("/SD:/blit/blit_test.bmp")
+</code></pre>
+<pre><code class="language-c">// C
+static int lua_paint_load_bmp(lua_State *L)
+{
+    const char *path = luaL_checkstring(L, 1);
+
+    struct fs_file_t f;
+    fs_file_t_init(&amp;f);
+    if (fs_open(&amp;f, path, FS_O_READ) != 0)
+    {
+        return luaL_error(L, "could not open %s", path);
+    }
+
+    uint8_t header[54];
+    fs_read(&amp;f, header, 54);
+
+    if (header[0] != 'B' || header[1] != 'M')
+    {
+        fs_close(&amp;f);
+        return luaL_error(L, "not a BMP file");
+    }
+
+    uint32_t pixel_offset = *(uint32_t *)(header + 10);
+    int32_t bmp_w = *(int32_t *)(header + 18);
+    int32_t bmp_h = *(int32_t *)(header + 22);
+    uint16_t bpp = *(uint16_t *)(header + 28);
+    bool flipped = bmp_h &gt; 0;
+    if (bmp_h &lt; 0)
+        bmp_h = -bmp_h;
+
+    if (bpp != 1)
+    {
+        fs_close(&amp;f);
+        return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
+    }
+
+    // BMP rows padded to 4-byte boundaries
+    int bmp_stride = ((bmp_w + 31) / 32) * 4;
+
+    // Output buffer uses tightly packed stride
+    int out_stride = (bmp_w + 7) / 8;
+    size_t out_size = out_stride * bmp_h;
+
+    uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
+    uint8_t *out_buf = malloc(out_size);
+    if (bmp_buf == NULL || out_buf == NULL)
+    {
+        free(bmp_buf);
+        free(out_buf);
+        fs_close(&amp;f);
+        return luaL_error(L, "out of memory");
+    }
+
+    fs_seek(&amp;f, pixel_offset, FS_SEEK_SET);
+    fs_read(&amp;f, bmp_buf, bmp_stride * bmp_h);
+    fs_close(&amp;f);
+
+    // Convert from BMP layout (bottom-up, 4-byte padded rows)
+    // to tightly packed top-down layout
+    memset(out_buf, 0, out_size);
+    for (int row = 0; row &lt; bmp_h; row++)
+    {
+        int src_row = flipped ? (bmp_h - 1 - row) : row;
+        uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+        for (int col = 0; col &lt; bmp_w; col++)
+        {
+            int src_bit = 7 - (col % 8);
+            int pixel = (src_line[col / 8] &gt;&gt; src_bit) &amp; 1;
+
+            int dst_bit = 7 - (col % 8);
+            int dst_byte = row * out_stride + col / 8;
+            if (pixel)
+                out_buf[dst_byte] |= (1 &lt;&lt; dst_bit);
+            else
+                out_buf[dst_byte] &amp;= ~(1 &lt;&lt; dst_bit);
+        }
+    }
+
+    free(bmp_buf);
+
+    // Push as Lua string (binary data), width, height
+    lua_pushlstring(L, (const char *)out_buf, out_size);
+    lua_pushinteger(L, bmp_w);
+    lua_pushinteger(L, bmp_h);
+
+    free(out_buf);
+    return 3;
+}
+</code></pre>
 
                     </main>
 
@@ -199,22 +547,6 @@
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>
@@ -232,6 +564,11 @@
 
         <!-- Custom JS scripts -->
 
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
 
 
     </div>

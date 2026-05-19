@@ -1,3 +1,7 @@
 # Summary
 
-- [Chapter 1](./chapter_1.md)
+- [Introduction](./introduction.md)
+    - [Uploading Lua](./uploading.md)
+
+- [Lua functions](./lua.md)
+    - [paint](./lua/paint.md)
