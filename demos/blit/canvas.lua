@@ -35,9 +35,18 @@ local canvas_2 = paint.new_canvas(32, 32)
 -- Ideally, you should keep the canvas small to save ram.
 
 paint.circle(16, 16, 10, 0, canvas_2)
+paint.circle(26, 5, 3, 0, canvas_2)
+paint.circle(26-7, 5+7, 3, 1, canvas_2)
 
 paint.clear()
 paint.blit(image, width, height, 55, 40, canvas_2)
 -- paint.blit accepts a mask
+
+paint.display()
+
+
+
+paint.blit(canvas_2, 55, 90)
+-- paint.blit can be used to blit a canvas to the lua buffer, instead of use as a mask.
 
 paint.display()

@@ -58,7 +58,7 @@ static int lua_paint_new_canvas(lua_State *L)
     int w = luaL_optinteger(L, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH);
     int h = luaL_optinteger(L, 2, CONFIG_FURRYDEX_DISPLAY_HEIGHT);
 
-    size_t size = ((w + 7) / 8) * h; // packed 1bpp, same as load_bmp output stride
+    size_t size = ((w + 7) / 8) * h;
 
     canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
     canvas->type = T_CANVAS;
@@ -261,18 +261,33 @@ static int lua_paint_text_wrap(lua_State *L)
 
 static int lua_paint_blit(lua_State *L)
 {
-    size_t src_len;
-    const uint8_t *src = (const uint8_t *)luaL_checklstring(L, 1, &src_len);
-    int src_w = luaL_checkinteger(L, 2);
-    int src_h = luaL_checkinteger(L, 3);
-    int x = luaL_checkinteger(L, 4);
-    int y = luaL_checkinteger(L, 5);
+    const uint8_t *src = NULL;
+    int src_w, src_h;
+
+    canvas_t *src_canvas = luaL_testudata(L, 1, "paint.canvas");
+    if (src_canvas)
+    {
+        src = (const uint8_t *)src_canvas->ptr;
+        src_w = src_canvas->width;
+        src_h = src_canvas->height;
+    }
+    else
+    {
+        size_t src_len;
+        src = (const uint8_t *)luaL_checklstring(L, 1, &src_len);
+        src_w = luaL_checkinteger(L, 2);
+        src_h = luaL_checkinteger(L, 3);
+    }
+
+    int x = luaL_checkinteger(L, src_canvas ? 2 : 4);
+    int y = luaL_checkinteger(L, src_canvas ? 3 : 5);
+    int mask_arg = src_canvas ? 4 : 6;
     if (should_display())
     {
         const uint8_t *mask = NULL;
-        if (!lua_isnoneornil(L, 6))
+        if (!lua_isnoneornil(L, mask_arg))
         {
-            canvas_t *canvas_mask = luaL_testudata(L, 6, "paint.canvas");
+            canvas_t *canvas_mask = luaL_testudata(L, mask_arg, "paint.canvas");
             if (canvas_mask)
             {
                 mask = (const uint8_t *)canvas_mask->ptr;
@@ -280,7 +295,7 @@ static int lua_paint_blit(lua_State *L)
             else
             {
                 size_t mask_len;
-                mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
+                mask = (const uint8_t *)luaL_checklstring(L, mask_arg, &mask_len);
             }
 
             k_mutex_lock(&lua_paint_mutex, K_FOREVER);
