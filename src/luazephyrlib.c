@@ -158,7 +158,12 @@ static int lua_paint_pixel(lua_State *L)
     int x = luaL_checknumber(L, 1);
     int y = luaL_checknumber(L, 2);
     int colour = luaL_checknumber(L, 3);
-    if (should_display())
+    canvas_t *canvas = luaL_testudata(L, 4, "paint.canvas");
+    if (canvas)
+    {
+        paintPixel(canvas->ptr, canvas->width, canvas->height, x, y, colour);
+    }
+    else if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
         paintPixel(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x, y, colour);
@@ -174,7 +179,12 @@ static int lua_paint_rect(lua_State *L)
     int x2 = luaL_checknumber(L, 3);
     int y2 = luaL_checknumber(L, 4);
     int colour = luaL_checknumber(L, 5);
-    if (should_display())
+    canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
+    if (canvas)
+    {
+        paintRegion(canvas->ptr, canvas->width, canvas->height, x1, y1, x2, y2, colour);
+    }
+    else if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
         paintRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2, colour);
@@ -219,6 +229,7 @@ static int lua_paint_character(lua_State *L)
     }
     int x = luaL_checknumber(L, 2);
     int y = luaL_checknumber(L, 3);
+    
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
