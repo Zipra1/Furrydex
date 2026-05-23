@@ -148,6 +148,7 @@ int main(void)
     printk("Display initialized\n");
     invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
     invert(lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+    paintText(main_buffer, 1, 10, 20, "Display initialized");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 
@@ -157,12 +158,22 @@ int main(void)
         return 0;
     }
 
+    paintText(main_buffer, 1, 10, 20, "Display initialized\nCDC ACM ready");
+    convertBuffer(main_buffer, output_buffer);
+    invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+    Display(25, 0, 36, 125, output_buffer);
+
     ret = enable_usb_device_next();
     if (ret != 0)
     {
         LOG_ERR("Failed to enable USB device support");
         return 0;
     }
+
+    paintText(main_buffer, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started");
+    convertBuffer(main_buffer, output_buffer);
+    invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+    Display(25, 0, 36, 125, output_buffer);
 
     k_msleep(100); // is this necessary
 
@@ -174,6 +185,11 @@ int main(void)
     else
     {
         printk("Successfully mounted SD card\n");
+
+        paintText(main_buffer, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted");
+        convertBuffer(main_buffer, output_buffer);
+        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+        Display(25, 0, 36, 125, output_buffer);
 
         struct fs_file_t data_filp;
         fs_file_t_init(&data_filp);
@@ -196,6 +212,11 @@ int main(void)
         ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
         fs_close(&data_filp);
 
+        paintText(main_buffer, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created");
+        convertBuffer(main_buffer, output_buffer);
+        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
+        Display(25, 0, 36, 125, output_buffer);
+
         // bool force = true;
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
     }
@@ -210,7 +231,6 @@ int main(void)
         k_mutex_unlock(&paint_mutex);
         invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
         // is there any way to invert it on the screen itself?
-
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);
     }

@@ -19,10 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-///////////////
-///  PAINT  ///
-///////////////
-
 #include "paint.h"
 #include "input.h"
 #include "lcd.h" // todo: ifdef here for lcd/epaper
@@ -30,6 +26,53 @@
 #include "lua_thread.h"
 #include "ui.h"
 #include "battery.h"
+
+typedef struct
+{
+    int type;
+    int width;
+    int height;
+    struct
+    {
+        size_t size;
+        void *ptr;
+    };
+} canvas_t;
+
+///////////////
+///  PAINT  ///
+///////////////
+
+#define T_CANVAS 2
+
+static int lua_canvas_gc(lua_State *L)
+{
+    canvas_t *canvas = luaL_checkudata(L, 1, "paint.canvas");
+    free(canvas->ptr);
+    canvas->ptr = NULL;
+    return 0;
+}
+
+static int lua_paint_new_canvas(lua_State *L)
+{
+    int w = luaL_optinteger(L, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH);
+    int h = luaL_optinteger(L, 2, CONFIG_FURRYDEX_DISPLAY_HEIGHT);
+
+    size_t size = ((w + 7) / 8) * h; // packed 1bpp, same as load_bmp output stride
+
+    canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
+    canvas->type = T_CANVAS;
+    canvas->width = w;
+    canvas->height = h;
+    canvas->size = size;
+    canvas->ptr = malloc(size);
+    if (!canvas->ptr)
+        return luaL_error(L, "out of memory");
+    memset(canvas->ptr, 0xFF, size);
+    luaL_getmetatable(L, "paint.canvas");
+    lua_setmetatable(L, -2);
+    return 1;
+}
 
 K_MUTEX_DEFINE(paint_mutex);
 K_MUTEX_DEFINE(lua_paint_mutex);
@@ -60,8 +103,17 @@ static int lua_paint_display(lua_State *L)
             }
             else
             {
-                size_t mask_len;
-                const uint8_t *mask = (const uint8_t *)luaL_checklstring(L, 1, &mask_len);
+                const uint8_t *mask = NULL;
+                canvas_t *canvas_mask = luaL_testudata(L, 1, "paint.canvas");
+                if (canvas_mask)
+                {
+                    mask = (const uint8_t *)canvas_mask->ptr;
+                }
+                else
+                {
+                    size_t mask_len;
+                    mask = (const uint8_t *)luaL_checklstring(L, 1, &mask_len);
+                }
                 blitMask(main_buffer,
                          CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
                          lua_buffer,
@@ -86,9 +138,14 @@ static int lua_paint_wait_for_display(lua_State *L)
 
 static int lua_paint_clear(lua_State *L)
 {
-    if (should_display())
+    int colour = luaL_optinteger(L, 1, 1);
+    canvas_t *canvas = luaL_testudata(L, 2, "paint.canvas");
+    if (canvas)
     {
-        int colour = luaL_optinteger(L, 1, 1);
+        memset(canvas->ptr, colour ? 0xFF : 0x00, canvas->size);
+    }
+    else if (should_display())
+    {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
         memset(lua_buffer, colour ? 0xFF : 0x00, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
         k_mutex_unlock(&lua_paint_mutex);
@@ -132,7 +189,15 @@ static int lua_paint_circle(lua_State *L)
     int y = luaL_checknumber(L, 2);
     int r = luaL_checknumber(L, 3);
     int colour = luaL_checknumber(L, 4);
-    if (should_display())
+    canvas_t *canvas = luaL_testudata(L, 5, "paint.canvas");
+    if (canvas)
+    {
+        paintFilledCircle(canvas->ptr,
+                          canvas->width,
+                          canvas->height,
+                          x, y, r, colour);
+    }
+    else if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
         paintFilledCircle(lua_buffer,
@@ -207,8 +272,16 @@ static int lua_paint_blit(lua_State *L)
         const uint8_t *mask = NULL;
         if (!lua_isnoneornil(L, 6))
         {
-            size_t mask_len;
-            mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
+            canvas_t *canvas_mask = luaL_testudata(L, 6, "paint.canvas");
+            if (canvas_mask)
+            {
+                mask = (const uint8_t *)canvas_mask->ptr;
+            }
+            else
+            {
+                size_t mask_len;
+                mask = (const uint8_t *)luaL_checklstring(L, 6, &mask_len);
+            }
 
             k_mutex_lock(&lua_paint_mutex, K_FOREVER);
             blitMask(lua_buffer,
@@ -216,13 +289,15 @@ static int lua_paint_blit(lua_State *L)
                      src,
                      src_w, src_h,
                      mask, x, y);
+            k_mutex_unlock(&lua_paint_mutex);
         }
         else
         {
+            k_mutex_lock(&lua_paint_mutex, K_FOREVER);
             blit(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, src, src_w, src_h, x, y);
+            k_mutex_unlock(&lua_paint_mutex);
         }
 
-        k_mutex_unlock(&lua_paint_mutex);
         lua_gc(L, LUA_GCSTEP, 100);
     }
     return 0;
@@ -329,11 +404,17 @@ static const luaL_Reg paint_funcs[] = {
     {"text_wrap", lua_paint_text_wrap},
     {"blit", lua_paint_blit},
     {"load_bmp", lua_paint_load_bmp},
+    {"new_canvas", lua_paint_new_canvas},
     {NULL, NULL},
 };
 
 LUAMOD_API int luaopen_paint(lua_State *L)
 {
+    luaL_newmetatable(L, "paint.canvas");
+    lua_pushcfunction(L, lua_canvas_gc);
+    lua_setfield(L, -2, "__gc");
+    lua_pop(L, 1);
+
     luaL_newlib(L, paint_funcs);
     return 1;
 }
@@ -374,7 +455,7 @@ int lua_input_get(lua_State *L)
     int input = luaL_checkinteger(L, 1);
 
     int output = atomic_get(&inputs) & input;
-    //output = get_bit(atomic_get(&inputs), input);
+    // output = get_bit(atomic_get(&inputs), input);
 
     lua_pushboolean(L, output);
     return 1;
@@ -405,13 +486,14 @@ LUAMOD_API int luaopen_input(lua_State *L)
 {
     luaL_newlib(L, input_funcs);
 
-    for (int i = 0; i < (int)INPUT_MAP_SIZE; i++) {
+    for (int i = 0; i < (int)INPUT_MAP_SIZE; i++)
+    {
         char key[16];
         snprintf(key, sizeof(key), "%s", input_map[i].name);
-        
+
         // Correctly shift the hardware bit index into a byte mask
         lua_pushinteger(L, 1 << input_map[i].bit);
-        lua_setfield(L, -2, key);   // ← sets input.LEFT, input.RIGHT, etc.
+        lua_setfield(L, -2, key); // ← sets input.LEFT, input.RIGHT, etc.
     }
 
     return 1;
@@ -433,10 +515,6 @@ int lua_sleep_ms(lua_State *L)
 //////////////
 
 #define T_USERDATA_FAT 1
-#define UD_GET_BUFFER(ix)                                                   \
-    ud_fat_t *buf = lua_touserdata(L, ix);                                  \
-    luaL_argcheck(L, buf->type == T_USERDATA_FAT, ix, "`buffer' expected"); \
-    luaL_argcheck(L, buf->ptr != NULL, ix, "`buffer' does not exist");
 typedef struct
 {
     int type;
@@ -446,6 +524,11 @@ typedef struct
         void *ptr;
     };
 } ud_fat_t;
+
+#define UD_GET_BUFFER(ix)                                                   \
+    ud_fat_t *buf = lua_touserdata(L, ix);                                  \
+    luaL_argcheck(L, buf->type == T_USERDATA_FAT, ix, "`buffer' expected"); \
+    luaL_argcheck(L, buf->ptr != NULL, ix, "`buffer' does not exist");
 
 static int lua_alloc_buffer(lua_State *L)
 {
@@ -613,14 +696,15 @@ static int lua_device_is_ready(lua_State *L)
 /// ADC ///
 ///////////
 
-static int lua_read_batt(lua_State *L){
+static int lua_read_batt(lua_State *L)
+{
 
     int battery_mv;
 
     int16_t battery_pptt = read_batt_mV(&battery_mv);
 
-    lua_pushinteger(L,battery_mv);
-    lua_pushinteger(L,battery_pptt);
+    lua_pushinteger(L, battery_mv);
+    lua_pushinteger(L, battery_pptt);
     return 2;
 }
 
@@ -1453,7 +1537,7 @@ static const luaL_Reg zephyr_funcs[] = {
     {"peek", lua_peek},
     {"poke", lua_poke},
     {"sleep", lua_sleep_ms},
-    {"read_batt_mv",lua_read_batt},
+    {"read_batt_mv", lua_read_batt},
     {NULL, NULL},
 };
 
