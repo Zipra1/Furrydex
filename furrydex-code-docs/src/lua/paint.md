@@ -1,3 +1,5 @@
+## This document is currently out of date, since the paint library is currently undergoing large changes.
+
 # paint
 The paint library is used to draw shapes to Lua's render buffer and push them to the main render buffer, which is then displayed on the screen.
 
@@ -26,6 +28,7 @@ static int lua_paint_wait_for_display(lua_State *L)
 
 ## display()
 If the current script should be displaying, copy the Lua render buffer to the main render buffer. The Lua render buffer is not visible until this is called.
+Accepts a mask in the form of a string or canvas.
 
 ```lua
 -- Usage in Lua
@@ -370,5 +373,37 @@ static int lua_paint_load_bmp(lua_State *L)
 
     free(out_buf);
     return 3;
+}
+```
+
+### new_canvas(optint(width),optint(height))
+Creates a canvas which can be painted on instead of painting directly to the Lua buffer.
+Default dimensions are the same as the screens dimensions.
+```lua
+-- Usage in Lua
+paint.new_canvas() -- Canvas of dimensions FURRYDEX_DISPLAY_WIDTH x FURRYDEX_DISPLAY_HEIGHT
+paint.new_canvas(32,32) -- Canvas of dimensions 32 x 32
+```
+```c
+// C
+static int lua_paint_new_canvas(lua_State *L)
+{
+    int w = luaL_optinteger(L, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH);
+    int h = luaL_optinteger(L, 2, CONFIG_FURRYDEX_DISPLAY_HEIGHT);
+
+    size_t size = ((w + 7) / 8) * h;
+
+    canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
+    canvas->type = T_CANVAS;
+    canvas->width = w;
+    canvas->height = h;
+    canvas->size = size;
+    canvas->ptr = malloc(size);
+    if (!canvas->ptr)
+        return luaL_error(L, "out of memory");
+    memset(canvas->ptr, 0xFF, size);
+    luaL_getmetatable(L, "paint.canvas");
+    lua_setmetatable(L, -2);
+    return 1;
 }
 ```
