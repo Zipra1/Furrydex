@@ -29,6 +29,7 @@
 #include "imgdata.h"
 #include "lua_thread.h"
 #include "ui.h"
+#include "battery.h"
 
 K_MUTEX_DEFINE(paint_mutex);
 K_MUTEX_DEFINE(lua_paint_mutex);
@@ -611,6 +612,17 @@ static int lua_device_is_ready(lua_State *L)
 ///////////
 /// ADC ///
 ///////////
+
+static int lua_read_batt(lua_State *L){
+
+    int battery_mv;
+
+    int16_t battery_pptt = read_batt_mV(&battery_mv);
+
+    lua_pushinteger(L,battery_mv);
+    lua_pushinteger(L,battery_pptt);
+    return 2;
+}
 
 //////////////
 /// EEPROM ///
@@ -1441,6 +1453,7 @@ static const luaL_Reg zephyr_funcs[] = {
     {"peek", lua_peek},
     {"poke", lua_poke},
     {"sleep", lua_sleep_ms},
+    {"read_batt_mv",lua_read_batt},
     {NULL, NULL},
 };
 

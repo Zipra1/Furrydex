@@ -62,6 +62,14 @@
 		};
 	};
 
+	battery-divider {
+		compatible = "voltage-divider";
+		status = "okay";
+		io-channels = <&adc 12>; // Measure VDDHDIV5
+		output-ohms = <1>;
+		full-ohms = <5>;
+	};
+
 	aliases {
 		sw0 = &button0;
 		adcctrl = &adc;

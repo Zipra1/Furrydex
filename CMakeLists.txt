@@ -53,5 +53,6 @@ target_sources(app PRIVATE
     src/input.c
     src/ui.c
     src/AnalogIn.c
+    src/battery.c
     src/drivers/74HC165.c
 )
