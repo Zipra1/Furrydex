@@ -32,12 +32,13 @@ paint.clear(nil, canvas)
 --small canvas & mask example
 -----
 
-local canvas_2 = paint.new_canvas(32, 32)
+local canvas_2 = paint.new_canvas(32, 34)
 -- Ideally, you should keep the canvas small to save ram.
 
 paint.circle(16, 16, 10, 0, canvas_2)
 paint.circle(26, 5, 3, 0, canvas_2)
 paint.circle(26-7, 5+7, 3, 1, canvas_2)
+paint.text(4,27,1,"meow",canvas_2)
 
 paint.clear()
 paint.blit(image, 55, 40, canvas_2)

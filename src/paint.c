@@ -1,16 +1,3 @@
-/*unsigned char *layerFrames(size_t num_frames, const unsigned char *const frames[])
-{
-    for (int i = 0; i < CONFIG_FURRYDEX_FRAME_BYTES_BUFFER; i++)
-    {
-        unsigned char merged_byte = 0xFF; // This can probably be optimized further
-        for (size_t j = 0; j < num_frames; j++)
-        {
-            merged_byte &= frames[j][i];
-        }
-        output_buffer[i] = merged_byte;
-    }
-    return output_buffer;
-}*/
 #include <zephyr/shell/shell.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +5,7 @@
 #include <stdbool.h>
 #include "fonts/font8.h"
 
-// Every function here should be display agnostic. That way, it will be possible to use different types of displays later on.
+// Every function here should be display agnostic. That way, it will be possible to use different types of displays & canvases.
 
 static inline uint8_t reverse_bits(uint8_t b)
 {
@@ -28,46 +15,39 @@ static inline uint8_t reverse_bits(uint8_t b)
     return b;
 }
 
-void paintCharacter(char character, unsigned char *buf, int translate_width, int translate_height)
+void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height)
 {
-    int fontWidth = 1;
     int fontHeight = 8;
-    int fontBytes = fontWidth * fontHeight;
-    int charStart = ((int)character - 32) * fontBytes;
-    int stride = 17;
-
-    int byteOffset = translate_width / 8;
-    if (byteOffset > 16 || byteOffset < 0) // Not display-agnostic! This needs to be fixed. Should cut off the character, instead of letting it bleed over.
-    {
-        return;
-    }
-    int bitShift = translate_width % 8;
+    int charStart = ((int)character - 32) * fontHeight;
+    int stride = (buf_w + 7) / 8;
 
     for (int i = 0; i < fontHeight; i++)
     {
+        int dst_y = i + translate_height;
+        if (dst_y < 0 || dst_y >= buf_h)
+            continue;
+
         unsigned char fontByte = ~font_8[charStart + i];
-        int rowStart = (i + translate_height) * stride;
-        int targetIdx = rowStart + byteOffset;
 
-        if (bitShift == 0)
+        for (int col = 0; col < 8; col++)
         {
-            buf[targetIdx] = fontByte;
-        }
-        else
-        {
-            buf[targetIdx] &= ~(0xFF >> bitShift);
-            buf[targetIdx] |= (fontByte >> bitShift);
+            int dst_x = translate_width + col;
+            if (dst_x < 0 || dst_x >= buf_w)
+                continue;
 
-            if (byteOffset + 1 < stride)
-            {
-                buf[targetIdx + 1] &= ~(0xFF << (8 - bitShift));
-                buf[targetIdx + 1] |= (fontByte << (8 - bitShift));
-            }
+            int pixel = (fontByte >> (7 - col)) & 1;
+            int dst_byte = dst_y * stride + dst_x / 8;
+            int dst_bit = 7 - (dst_x % 8);
+
+            if (pixel)
+                buf[dst_byte] |= (1 << dst_bit);
+            else
+                buf[dst_byte] &= ~(1 << dst_bit);
         }
     }
 }
 
-void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string)
+void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string)
 {
     int character_width = 5;
     int line_height = 8;
@@ -83,12 +63,12 @@ void paintText(unsigned char *buf, int kerning, int translate_width, int transla
             current_y += line_height;
             continue;
         }
-        paintCharacter(string[i], buf, translate_width + current_x, translate_height + current_y);
+        paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y);
         current_x += (character_width + kerning);
     }
 }
 
-int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width, const char *string)
+int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string)
 {
     int character_width = 5;
     int line_height = 8;
@@ -128,7 +108,7 @@ int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int tran
 
         for (int j = 0; j < word_len; j++)
         {
-            paintCharacter(string[i], buf, translate_width + current_x, translate_height + current_y);
+            paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y);
             current_x += (character_width + kerning);
             i++;
         }
@@ -142,7 +122,7 @@ int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int tran
     return current_y + line_height;
 }
 
-void invertRegion(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
+void invertRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
 {
     int stride = (buf_w + 7) / 8; // Number of bytes per row
 
@@ -180,7 +160,7 @@ void paintPixel(uint8_t *buf, int buf_w, int buf_h, int x, int y, int colour)
     }
 }
 
-void paintLine(unsigned char *buf, int buf_w, int buf_h, int x0, int y0, int x1, int y1, int colour)
+void paintLine(uint8_t *buf, int buf_w, int buf_h, int x0, int y0, int x1, int y1, int colour)
 {
 
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -263,7 +243,7 @@ void convertBuffer(uint8_t *buffer, uint8_t *target_buffer)
     }
 }
 
-void FlipBuffer(unsigned char *buf, int physical_width, int height, bool flip_h, bool flip_v)
+void FlipBuffer(uint8_t *buf, int physical_width, int height, bool flip_h, bool flip_v)
 {
     int w_bytes = (physical_width + 7) / 8; // can this just be set to the width since width is already 128? not sure how that will interact with other displays, tho.
     int padding_bits = (w_bytes * 8) - physical_width;

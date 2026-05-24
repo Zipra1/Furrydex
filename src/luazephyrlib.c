@@ -106,25 +106,14 @@ static int lua_paint_display(lua_State *L)
         k_mutex_lock(&paint_mutex, K_FOREVER);
         if (!lua_isnoneornil(L, 1))
         {
-            if (lua_isinteger(L, 1) && lua_tointeger(L, 1) == 1)
-            {
-                blitMask(main_buffer,
-                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
-                         lua_buffer,
-                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
-                         lua_buffer, 0, 0);
-            }
-            else
-            {
-                const uint8_t *mask = NULL;
-                canvas_t *canvas_mask = luaL_testudata(L, 1, "paint.canvas");
-                mask = (const uint8_t *)canvas_mask->ptr;
-                blitMask(main_buffer,
-                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
-                         lua_buffer,
-                         CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
-                         mask, 0, 0);
-            }
+            const uint8_t *mask = NULL;
+            canvas_t *canvas_mask = luaL_checkudata(L, 1, "paint.canvas");
+            mask = (const uint8_t *)canvas_mask->ptr;
+            blitMask(main_buffer,
+                     CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                     lua_buffer,
+                     CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                     mask, 0, 0);
         }
         else
         {
@@ -195,7 +184,7 @@ static int lua_paint_rect(lua_State *L)
         paintRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2, colour);
         k_mutex_unlock(&lua_paint_mutex);
     }
-    return 0; // no return values pushed to Lua
+    return 0;
 }
 
 static int lua_paint_circle(lua_State *L)
@@ -221,7 +210,7 @@ static int lua_paint_circle(lua_State *L)
                           x, y, r, colour);
         k_mutex_unlock(&lua_paint_mutex);
     }
-    return 0; // no return values pushed to Lua
+    return 0;
 }
 
 static int lua_paint_character(lua_State *L)
@@ -234,14 +223,15 @@ static int lua_paint_character(lua_State *L)
     }
     int x = luaL_checknumber(L, 2);
     int y = luaL_checknumber(L, 3);
+    canvas_t *canvas = luaL_testudata(L, 4, "paint.canvas");
 
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintCharacter(character[0], lua_buffer, x, y);
+        paintCharacter(character[0], canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, canvas ? canvas->ptr : lua_buffer, x, y);
         k_mutex_unlock(&lua_paint_mutex);
     }
-    return 0; // no return values pushed to Lua
+    return 0;
 }
 
 static int lua_paint_text(lua_State *L)
@@ -250,13 +240,14 @@ static int lua_paint_text(lua_State *L)
     int y = luaL_checknumber(L, 2);
     int kerning = luaL_checknumber(L, 3);
     const char *text = luaL_checkstring(L, 4);
+    canvas_t *canvas = luaL_testudata(L, 5, "paint.canvas");
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintText(lua_buffer, kerning, x, y, text);
+        paintText(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, x, y, text);
         k_mutex_unlock(&lua_paint_mutex);
     }
-    return 0; // no return values pushed to Lua
+    return 0;
 }
 
 static int lua_paint_text_wrap(lua_State *L)
@@ -266,13 +257,17 @@ static int lua_paint_text_wrap(lua_State *L)
     int kerning = luaL_checknumber(L, 3);
     int width = luaL_checknumber(L, 4);
     const char *text = luaL_checkstring(L, 5);
+    canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
+    
+    int lines;
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintTextWrap(lua_buffer, kerning, x, y, width, text);
+        lines = paintTextWrap(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, x, y, width, text);
         k_mutex_unlock(&lua_paint_mutex);
     }
-    return 0; // no return values pushed to Lua
+    lua_pushinteger(L, lines);
+    return 1;
 }
 
 static int lua_paint_blit(lua_State *L)

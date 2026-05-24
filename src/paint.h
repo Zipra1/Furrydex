@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void paintCharacter(char character, unsigned char *buf, int translate_width, int translate_height);
-void paintText(unsigned char *buf, int kerning, int translate_width, int translate_height, const char *string);
-int paintTextWrap(unsigned char *buf, int kerning, int translate_width, int translate_height, int box_width, const char *string);
+void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height);
+void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string);
+int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string);
 void invert(uint8_t *buf, size_t size);
 void invertRegion(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y);
 void paintPixel(uint8_t *buf, int buf_w, int buf_h, int x, int y, int colour);
