@@ -53,6 +53,19 @@ static int lua_canvas_gc(lua_State *L)
     return 0;
 }
 
+static int lua_canvas_index(lua_State *L)
+{
+    canvas_t *canvas = luaL_checkudata(L, 1, "paint.canvas");
+    const char *key = luaL_checkstring(L, 2);
+    if (strcmp(key, "width") == 0)
+        lua_pushinteger(L, canvas->width);
+    else if (strcmp(key, "height") == 0)
+        lua_pushinteger(L, canvas->height);
+    else
+        lua_pushnil(L);
+    return 1;
+}
+
 static int lua_paint_new_canvas(lua_State *L)
 {
     int w = luaL_optinteger(L, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH);
@@ -105,15 +118,7 @@ static int lua_paint_display(lua_State *L)
             {
                 const uint8_t *mask = NULL;
                 canvas_t *canvas_mask = luaL_testudata(L, 1, "paint.canvas");
-                if (canvas_mask)
-                {
-                    mask = (const uint8_t *)canvas_mask->ptr;
-                }
-                else
-                {
-                    size_t mask_len;
-                    mask = (const uint8_t *)luaL_checklstring(L, 1, &mask_len);
-                }
+                mask = (const uint8_t *)canvas_mask->ptr;
                 blitMask(main_buffer,
                          CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT,
                          lua_buffer,
@@ -229,7 +234,7 @@ static int lua_paint_character(lua_State *L)
     }
     int x = luaL_checknumber(L, 2);
     int y = luaL_checknumber(L, 3);
-    
+
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
@@ -275,39 +280,20 @@ static int lua_paint_blit(lua_State *L)
     const uint8_t *src = NULL;
     int src_w, src_h;
 
-    canvas_t *src_canvas = luaL_testudata(L, 1, "paint.canvas");
-    if (src_canvas)
-    {
-        src = (const uint8_t *)src_canvas->ptr;
-        src_w = src_canvas->width;
-        src_h = src_canvas->height;
-    }
-    else
-    {
-        size_t src_len;
-        src = (const uint8_t *)luaL_checklstring(L, 1, &src_len);
-        src_w = luaL_checkinteger(L, 2);
-        src_h = luaL_checkinteger(L, 3);
-    }
+    canvas_t *src_canvas = luaL_checkudata(L, 1, "paint.canvas");
+    src = (const uint8_t *)src_canvas->ptr;
+    src_w = src_canvas->width;
+    src_h = src_canvas->height;
 
-    int x = luaL_checkinteger(L, src_canvas ? 2 : 4);
-    int y = luaL_checkinteger(L, src_canvas ? 3 : 5);
-    int mask_arg = src_canvas ? 4 : 6;
+    int x = luaL_checkinteger(L, 2);
+    int y = luaL_checkinteger(L, 3);
     if (should_display())
     {
         const uint8_t *mask = NULL;
-        if (!lua_isnoneornil(L, mask_arg))
+        if (!lua_isnoneornil(L, 4))
         {
-            canvas_t *canvas_mask = luaL_testudata(L, mask_arg, "paint.canvas");
-            if (canvas_mask)
-            {
-                mask = (const uint8_t *)canvas_mask->ptr;
-            }
-            else
-            {
-                size_t mask_len;
-                mask = (const uint8_t *)luaL_checklstring(L, mask_arg, &mask_len);
-            }
+            canvas_t *canvas_mask = luaL_checkudata(L, 4, "paint.canvas");
+            mask = (const uint8_t *)canvas_mask->ptr;
 
             k_mutex_lock(&lua_paint_mutex, K_FOREVER);
             blitMask(lua_buffer,
@@ -372,22 +358,30 @@ static int lua_paint_load_bmp(lua_State *L)
     size_t out_size = out_stride * bmp_h;
 
     uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
-    uint8_t *out_buf = malloc(out_size);
-    if (bmp_buf == NULL || out_buf == NULL)
+    canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
+    canvas->type = T_CANVAS;
+    canvas->width = bmp_w;
+    canvas->height = bmp_h;
+    canvas->size = out_size;
+    canvas->ptr = malloc(out_size);
+
+    if (bmp_buf == NULL || canvas->ptr == NULL)
     {
         free(bmp_buf);
-        free(out_buf);
+        free(canvas->ptr);
         fs_close(&f);
         return luaL_error(L, "out of memory");
     }
+
+    luaL_getmetatable(L, "paint.canvas");
+    lua_setmetatable(L, -2);
 
     fs_seek(&f, pixel_offset, FS_SEEK_SET);
     fs_read(&f, bmp_buf, bmp_stride * bmp_h);
     fs_close(&f);
 
-    // Convert from BMP layout (bottom-up, 4-byte padded rows)
-    // to tightly packed top-down layout
-    memset(out_buf, 0, out_size);
+    // Convert from BMP layout (bottom-up, 4-byte padded rows) to tightly packed top-down layout
+    memset(canvas->ptr, 0, out_size);
     for (int row = 0; row < bmp_h; row++)
     {
         int src_row = flipped ? (bmp_h - 1 - row) : row;
@@ -401,21 +395,15 @@ static int lua_paint_load_bmp(lua_State *L)
             int dst_bit = 7 - (col % 8);
             int dst_byte = row * out_stride + col / 8;
             if (pixel)
-                out_buf[dst_byte] |= (1 << dst_bit);
+                ((uint8_t *)canvas->ptr)[dst_byte] |= (1 << dst_bit);
             else
-                out_buf[dst_byte] &= ~(1 << dst_bit);
+                ((uint8_t *)canvas->ptr)[dst_byte] &= ~(1 << dst_bit);
         }
     }
 
     free(bmp_buf);
 
-    // Push as Lua string (binary data), width, height
-    lua_pushlstring(L, (const char *)out_buf, out_size);
-    lua_pushinteger(L, bmp_w);
-    lua_pushinteger(L, bmp_h);
-
-    free(out_buf);
-    return 3;
+    return 1;
 }
 
 static const luaL_Reg paint_funcs[] = {
@@ -439,6 +427,8 @@ LUAMOD_API int luaopen_paint(lua_State *L)
     luaL_newmetatable(L, "paint.canvas");
     lua_pushcfunction(L, lua_canvas_gc);
     lua_setfield(L, -2, "__gc");
+    lua_pushcfunction(L, lua_canvas_index);
+    lua_setfield(L, -2, "__index");
     lua_pop(L, 1);
 
     luaL_newlib(L, paint_funcs);
