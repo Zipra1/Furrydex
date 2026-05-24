@@ -1,21 +1,21 @@
 local paint = require("paint")
 
 -- Load the file into memory
--- BMP files must be 1 bit per pixel (bpp). In Photoshop, this is the "Bitmap" colour mode.
-local image, width, height = paint.load_bmp("/SD:/blit/blit_test.bmp")
-
--- The blit function also accepts a mask for transparency, where a bit being 1 is transparent, and a 0 is opaque.
--- In this case, the mask is equal to the image, but it would more commonly be a silhouette of what you want to display.
--- The mask should always be the same dimensions as the image you are using it on!
-local mask = image
+-- BMP files must be 1bpp (bit per pixel). In Photoshop, this is the "Bitmap" colour mode.
+-- Images load in as a canvas, which can later be modified, displayed, and masked.
+local image = paint.load_bmp("/SD:/blit/blit_test.bmp")
 
 -- Clear the lua buffer.
 paint.clear()
 
 -- Blit the image to the lua frame buffer
-paint.blit(image, width, height, 10, 40, mask)
+paint.blit(image, 10, 40)
 -- The mask is optional. If you don't have one, blit will treat the entire image as opaque by default.
 -- paint.blit(image, width, height, 10, 40)
+
+-- You can get the width and height from a canvas like so:
+print(image.width)
+print(image.height)
 
 -- Update the display
 paint.display()
