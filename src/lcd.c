@@ -268,6 +268,8 @@ int initDisplay()
     sendCommand(0xB8); // Panel Setting Frame inversion
     sendData(0x29);
 
+    sendCommand(0x21); // Display inversion on (0x20 for off)
+
     // sendCommand(0x2A);////Column Address Setting S61~S182
     // sendData(0x05);
     // sendData(0x36);
@@ -324,4 +326,20 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 
     // duration = k_uptime_get() - start_time;
     // printf("LCD frame took: %lld ms\n", duration);
+}
+
+#define ST7305_CMD_HPM 0x38    /* High Power Mode ON  (§8.1.22) */
+#define ST7305_CMD_LPM 0x39    /* Low Power Mode ON   (§8.1.23) */
+#define ST7305_CMD_FRCTRL 0xB2 /* Frame Rate Control  (§8.2.3)  */
+
+int setFPS(int fps)
+{
+    if (fps == 25) // 0.25Hz
+    {
+        sendCommand(ST7305_CMD_LPM);
+        
+        sendCommand(0xD8); // OSC setting
+        sendData(0xA6);
+        sendData(0xE9);
+    }
 }

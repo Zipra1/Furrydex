@@ -145,9 +145,8 @@ int main(void)
 {
     int ret;
     initDisplay();
-    printk("Display initialized\n");
     invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
-    invert(lua_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
+    printk("Display initialized\n");
     paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
@@ -160,7 +159,6 @@ int main(void)
 
     paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready");
     convertBuffer(main_buffer, output_buffer);
-    invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
     Display(25, 0, 36, 125, output_buffer);
 
     ret = enable_usb_device_next();
@@ -172,7 +170,6 @@ int main(void)
 
     paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started");
     convertBuffer(main_buffer, output_buffer);
-    invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
     Display(25, 0, 36, 125, output_buffer);
 
     k_msleep(100); // is this necessary
@@ -188,7 +185,6 @@ int main(void)
 
         paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted");
         convertBuffer(main_buffer, output_buffer);
-        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
         Display(25, 0, 36, 125, output_buffer);
 
         struct fs_file_t data_filp;
@@ -214,7 +210,6 @@ int main(void)
 
         paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created");
         convertBuffer(main_buffer, output_buffer);
-        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
         Display(25, 0, 36, 125, output_buffer);
 
         // bool force = true;
@@ -229,8 +224,6 @@ int main(void)
         k_mutex_lock(&paint_mutex, K_FOREVER);
         convertBuffer(main_buffer, output_buffer);
         k_mutex_unlock(&paint_mutex);
-        invert(output_buffer, CONFIG_FURRYDEX_FRAME_BYTES_DISPLAY);
-        // is there any way to invert it on the screen itself?
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);
     }
