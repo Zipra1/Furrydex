@@ -260,7 +260,7 @@ static int lua_paint_text_wrap(lua_State *L)
     const char *text = luaL_checkstring(L, 5);
     canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
 
-    int lines;
+    int lines = 0;
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);

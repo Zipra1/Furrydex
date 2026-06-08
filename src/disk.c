@@ -23,6 +23,7 @@ const char *disk_mount_pt = "/SD:";
 
 /**
  * @brief Release memory allocated by lsdir().
+ * AI generated. Needs review!
  */
 void lsdir_free(lsdir_result_t *result)
 {
@@ -35,13 +36,20 @@ void lsdir_free(lsdir_result_t *result)
 }
 
 /**
- * @brief List a directory and return its contents.
+ * @brief List a directory and return its contents. 
+ * AI generated. Needs review!
+ *
+ * Uses a two-pass strategy: pass 1 counts entries so memory can be
+ * allocated exactly once; pass 2 fills it.  This avoids the repeated
+ * realloc() calls that fragmented the heap in the previous version.
  *
  * On success the caller owns result->entries and must call lsdir_free()
  * when finished.  On failure result is left in a valid, empty state that
  * is safe (but unnecessary) to pass to lsdir_free().
- * lsdir is written by generative AI, requires review
- * this function is likely unsafe and causing crashes when the heap fragments
+ *
+ * @note  struct fs_dirent is stack-allocated (~260 B with MAX_FILE_NAME=255).
+ *        Verify your thread's stack budget before calling from constrained
+ *        contexts.
  *
  * @param path   Directory to list.
  * @param result Output; populated with one entry per item found.
@@ -51,9 +59,12 @@ int lsdir(const char *path, lsdir_result_t *result)
 {
     int res;
     struct fs_dir_t  dirp;
-    static struct fs_dirent entry;      /* static: avoids large stack frame */
+    struct fs_dirent entry;
 
-    /* Initialise the output to a safe empty state. */
+    if (!result) {
+        return -EINVAL;
+    }
+
     result->entries = NULL;
     result->count   = 0;
 
@@ -65,53 +76,72 @@ int lsdir(const char *path, lsdir_result_t *result)
         return res;
     }
 
-    /* Start with room for 16 entries; double as needed. */
-    int capacity = 16;
-    lsdir_entry_t *entries = malloc(capacity * sizeof(lsdir_entry_t));
+    int count = 0;
+    for (;;) {
+        res = fs_readdir(&dirp, &entry);
+        if (res) {
+            break;
+        }
+        if (entry.name[0] == '\0') {    // end-of-directory marker
+            res = 0;
+            break;
+        }
+        count++;
+    }
+
+    fs_closedir(&dirp);
+
+    if (res != 0 || count == 0) {
+        return res;
+    }
+
+    lsdir_entry_t *entries = malloc((size_t)count * sizeof(*entries));
     if (!entries) {
-        fs_closedir(&dirp);
         return -ENOMEM;
     }
 
-    int count = 0;
+    res = fs_opendir(&dirp, path);
+    if (res) {
+        free(entries);
+        printk("Error re-opening dir %s [%d]\n", path, res);
+        return res;
+    }
 
+    int filled = 0;
     for (;;) {
         res = fs_readdir(&dirp, &entry);
-
-        /* entry.name[0] == 0 signals end-of-directory (not an error). */
-        if (res || entry.name[0] == 0) {
-            if (entry.name[0] == 0) {
-                res = 0;
-            }
+        if (res) {
             break;
         }
 
-        /* Grow the array when full. */
-        if (count == capacity) {
-            capacity *= 2;
-            lsdir_entry_t *tmp = realloc(entries, capacity * sizeof(lsdir_entry_t));
-            if (!tmp) {
-                free(entries);
-                fs_closedir(&dirp);
-                return -ENOMEM;
-            }
-            entries = tmp;
+        if (entry.name[0] == '\0') {
+            res = 0;
+            break;
         }
 
-        strncpy(entries[count].name, entry.name, MAX_FILE_NAME);
-        entries[count].name[MAX_FILE_NAME] = '\0';
-        entries[count].is_dir = (entry.type == FS_DIR_ENTRY_DIR);
-        entries[count].size   = entry.size;
-        count++;
+        if (filled == count) {
+            break;
+        }
+
+        size_t src_len = strlcpy(entries[filled].name,
+                                 entry.name,
+                                 sizeof(entries[filled].name));
+        if (src_len >= sizeof(entries[filled].name)) {
+            printk("Warning: filename truncated in %s: %s\n", path, entry.name);
+        }
+
+        entries[filled].is_dir = (entry.type == FS_DIR_ENTRY_DIR);
+        entries[filled].size   = entry.size;
+        filled++;
     }
 
     fs_closedir(&dirp);
 
     if (res == 0) {
         result->entries = entries;
-        result->count   = count;
+        result->count   = filled;
     } else {
-        free(entries);      /* discard partial list on read error */
+        free(entries);
     }
 
     return res;
