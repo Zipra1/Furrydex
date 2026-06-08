@@ -292,7 +292,24 @@ static int cmd_ls(const struct shell *sh, size_t argc, char **argv)
         return -EINVAL;
     }
 
-    lsdir(argv[1]);
+    lsdir_result_t list;
+
+    if (lsdir(argv[1], &list) == 0)
+    {
+        for (int i = 0; i < list.count; i++)
+        {
+            const lsdir_entry_t *e = &list.entries[i];
+            if (e->is_dir)
+            {
+                printk("[DIR ] %s\n", e->name);
+            }
+            else
+            {
+                printk("[FILE] %s (size = %zu)\n", e->name, e->size);
+            }
+        }
+        lsdir_free(&list);
+    }
 
     return 0;
 }

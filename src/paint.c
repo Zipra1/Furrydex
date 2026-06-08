@@ -124,6 +124,11 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
 
 void invertRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
 {
+    start_x = (start_x < 0)    ? 0    : (start_x > buf_w) ? buf_w : start_x;
+    start_y = (start_y < 0)    ? 0    : (start_y > buf_h) ? buf_h : start_y;
+    end_x   = (end_x   < 0)    ? 0    : (end_x   > buf_w) ? buf_w : end_x;
+    end_y   = (end_y   < 0)    ? 0    : (end_y   > buf_h) ? buf_h : end_y;
+    
     int stride = (buf_w + 7) / 8; // Number of bytes per row
 
     for (int cur_y = start_y; cur_y < end_y; cur_y++)

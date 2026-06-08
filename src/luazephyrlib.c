@@ -26,6 +26,7 @@
 #include "lua_thread.h"
 #include "ui.h"
 #include "battery.h"
+#include "disk.h"
 
 typedef struct
 {
@@ -258,7 +259,7 @@ static int lua_paint_text_wrap(lua_State *L)
     int width = luaL_checknumber(L, 4);
     const char *text = luaL_checkstring(L, 5);
     canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
-    
+
     int lines;
     if (should_display())
     {
@@ -401,6 +402,26 @@ static int lua_paint_load_bmp(lua_State *L)
     return 1;
 }
 
+static int lua_paint_invert_region(lua_State *L)
+{
+    int x1 = luaL_checknumber(L, 1);
+    int y1 = luaL_checknumber(L, 2);
+    int x2 = luaL_checknumber(L, 3);
+    int y2 = luaL_checknumber(L, 4);
+    canvas_t *canvas = luaL_testudata(L, 5, "paint.canvas");
+    if (canvas)
+    {
+        invertRegion(canvas->ptr, canvas->width, canvas->height, x1, y1, x2, y2);
+    }
+    else if (should_display())
+    {
+        k_mutex_lock(&lua_paint_mutex, K_FOREVER);
+        invertRegion(lua_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, x1, y1, x2, y2);
+        k_mutex_unlock(&lua_paint_mutex);
+    }
+    return 0;
+}
+
 static const luaL_Reg paint_funcs[] = {
     {"wait_for_display", lua_paint_wait_for_display},
     {"display", lua_paint_display},
@@ -414,6 +435,7 @@ static const luaL_Reg paint_funcs[] = {
     {"blit", lua_paint_blit},
     {"load_bmp", lua_paint_load_bmp},
     {"new_canvas", lua_paint_new_canvas},
+    {"invert_region", lua_paint_invert_region},
     {NULL, NULL},
 };
 
@@ -788,6 +810,49 @@ static int lua_flash_erase(lua_State *L)
 ///////////////////
 /// DISK ACCESS ///
 ///////////////////
+
+// lua_disk_ls is written by generative AI. Requires review
+static int lua_disk_ls(lua_State *L)
+{
+    const char *dir = luaL_checkstring(L, 1);  /* const char*, not char* */
+    lsdir_result_t result;
+
+    int res = lsdir(dir, &result);
+    if (res != 0)
+    {
+        lua_pushnil(L);
+        lua_pushfstring(L, "Failed to list directory '%s' [%d]", dir, res);
+        return 2;   /* nil, errmsg */
+    }
+
+    /* Outer table — one entry per item found */
+    lua_newtable(L);
+
+    for (int i = 0; i < result.count; i++)
+    {
+        const lsdir_entry_t *e = &result.entries[i];
+
+        /* Inner table: { name, is_dir, size? } */
+        lua_newtable(L);
+
+        lua_pushstring(L, e->name);
+        lua_setfield(L, -2, "name");
+
+        lua_pushboolean(L, e->is_dir);
+        lua_setfield(L, -2, "is_dir");
+
+        if (!e->is_dir)
+        {
+            lua_pushinteger(L, (lua_Integer)e->size);
+            lua_setfield(L, -2, "size");
+        }
+
+        lua_rawseti(L, -2, i + 1);  /* Lua tables are 1-indexed */
+    }
+
+    lsdir_free(&result);
+    return 1;   /* the outer table */
+}
 
 static int lua_disk_access_init(lua_State *L)
 {
@@ -1464,6 +1529,7 @@ static const luaL_Reg zephyr_funcs[] = {
     {"flash_erase", lua_flash_erase},
     /* {"flash_get_page_count", flash_get_page_count}, */
     // Disk
+    {"ls", lua_disk_ls},
     {"disk_access_init", lua_disk_access_init},
     {"disk_access_status", lua_disk_access_status},
     {"disk_access_ioctl", lua_disk_access_ioctl},
