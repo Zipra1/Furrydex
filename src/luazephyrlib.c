@@ -391,9 +391,9 @@ static int lua_paint_load_bmp(lua_State *L)
             int dst_bit = 7 - (col % 8);
             int dst_byte = row * out_stride + col / 8;
             if (pixel)
-                ((uint8_t *)canvas->ptr)[dst_byte] |= (1 << dst_bit);
-            else
                 ((uint8_t *)canvas->ptr)[dst_byte] &= ~(1 << dst_bit);
+            else
+                ((uint8_t *)canvas->ptr)[dst_byte] |= (1 << dst_bit);
         }
     }
 
@@ -814,7 +814,7 @@ static int lua_flash_erase(lua_State *L)
 // lua_disk_ls is written by generative AI. Requires review
 static int lua_disk_ls(lua_State *L)
 {
-    const char *dir = luaL_checkstring(L, 1);  /* const char*, not char* */
+    const char *dir = luaL_checkstring(L, 1); /* const char*, not char* */
     lsdir_result_t result;
 
     int res = lsdir(dir, &result);
@@ -822,7 +822,7 @@ static int lua_disk_ls(lua_State *L)
     {
         lua_pushnil(L);
         lua_pushfstring(L, "Failed to list directory '%s' [%d]", dir, res);
-        return 2;   /* nil, errmsg */
+        return 2; /* nil, errmsg */
     }
 
     /* Outer table — one entry per item found */
@@ -847,11 +847,11 @@ static int lua_disk_ls(lua_State *L)
             lua_setfield(L, -2, "size");
         }
 
-        lua_rawseti(L, -2, i + 1);  /* Lua tables are 1-indexed */
+        lua_rawseti(L, -2, i + 1); /* Lua tables are 1-indexed */
     }
 
     lsdir_free(&result);
-    return 1;   /* the outer table */
+    return 1; /* the outer table */
 }
 
 static int lua_disk_access_init(lua_State *L)
