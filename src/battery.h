@@ -54,4 +54,6 @@ int read_batt(void);
 
 int read_batt_mV(int *out);
 
+extern atomic_t battery_percent;
+
 #endif /* APPLICATION_BATTERY_H_ */

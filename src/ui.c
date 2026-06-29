@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "paint.h"
+#include "battery.h"
 #include "input.h"
 #include "lua_thread.h"
 #include "luazephyrlib.h"
@@ -38,7 +39,18 @@ void page_right()
 
 void draw_ui()
 {
+    int battery_width = 30;
+    int battery_whitespace = 4;
+    float battery_percent_divider = 100.0 / ((CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1) - (CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1) - 2);
+
     k_mutex_lock(&paint_mutex, K_FOREVER);
+
+    // Battery indicator
+    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace, 9, 0);                                                               // battery body
+    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2, 7, 0);                                                                       // battery bump
+    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1, 2, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1, 8, 1);                                                       // battery white
+    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 + (atomic_get(&battery_percent) / battery_percent_divider), 7, 0); // battery fill
+
     paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
     k_mutex_unlock(&paint_mutex);
 }

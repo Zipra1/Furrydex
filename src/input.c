@@ -101,6 +101,6 @@ int get_bit(unsigned char byte, int n)
     return (byte >> n) & 0x01;
 }
 
-K_THREAD_DEFINE(input_tid, 2048, input_thread, NULL, NULL, NULL, 10, 0, 0);
+K_THREAD_DEFINE(input_tid, 1024, input_thread, NULL, NULL, NULL, 10, 0, 0);
 
 // SYS_INIT(input_init2, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
