@@ -22,6 +22,8 @@ typedef struct {
     // 1 = capture
     // 2 = listen (gated)
     // 3 = listen (always)
+    bool hide_top;
+    bool hide_bottom;
 } lua_thread_slot_t;
 
 #define LUA_INPUT_NONE 0

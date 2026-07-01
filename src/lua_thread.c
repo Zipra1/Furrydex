@@ -63,6 +63,15 @@ static void lua_thread_cancel_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
+static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
+{
+    slot->kill_requested = false;
+    slot->state = NULL;
+    slot->capture_input = LUA_INPUT_LISTEN_GATED;
+    slot->hide_top = false;
+    slot->hide_bottom = false;
+}
+
 int lua_thread_update_priorities(int selected_slot)
 {
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
@@ -93,8 +102,7 @@ static void lua_thread_entry(void *a, void *b, void *c)
 {
     lua_thread_slot_t *slot = (lua_thread_slot_t *)a;
 
-    slot->kill_requested = false;
-    slot->state = NULL;
+    lua_thread_reset_slot_state(slot);
 
     if (!lua_heap_initialized)
     {
@@ -165,10 +173,10 @@ static void lua_thread_entry(void *a, void *b, void *c)
     }
 
     lua_close(state);
-    slot->state = NULL;
-    slot->kill_requested = false;
+    lua_thread_reset_slot_state(slot);
     free(slot->script);
     slot->script = NULL;
+    slot->shell = NULL;
     slot->in_use = false;
     num_lua_threads = recount_lua_threads();
 }
@@ -192,9 +200,7 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
             lua_slots[i].shell = shell;
             lua_slots[i].in_use = true;
             lua_slots[i].been_started = true;
-            lua_slots[i].kill_requested = false;
-            lua_slots[i].state = NULL;
-            lua_slots[i].capture_input = 2;
+            lua_thread_reset_slot_state(&lua_slots[i]);
             k_thread_create(&lua_slots[i].thread,
                             lua_stacks[i],
                             K_THREAD_STACK_SIZEOF(lua_stacks[0]),

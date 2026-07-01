@@ -45,13 +45,18 @@ void draw_ui()
 
     k_mutex_lock(&paint_mutex, K_FOREVER);
 
-    // Battery indicator
-    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace, 9, 0);                                                               // battery body
-    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2, 7, 0);                                                                       // battery bump
-    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1, 2, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1, 8, 1);                                                       // battery white
-    paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 + (atomic_get(&battery_percent) / battery_percent_divider), 7, 0); // battery fill
-
-    paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
+    if (!lua_slots[atomic_get(&selected_page)].hide_top)
+    {
+        // Battery indicator
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace, 9, 0);                                                               // battery body
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2, 7, 0);                                                                       // battery bump
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1, 2, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1, 8, 1);                                                       // battery white
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 + (atomic_get(&battery_percent) / battery_percent_divider), 7, 0); // battery fill
+    }
+    if (!lua_slots[atomic_get(&selected_page)].hide_bottom)
+    {
+        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
+    }
     k_mutex_unlock(&paint_mutex);
 }
 
@@ -61,7 +66,7 @@ static void ui_thread(void *a, void *b, void *c)
 
     while (1)
     {
-        k_sem_take(&input_sem, K_FOREVER);
+        k_sem_take(&input_sem, K_FOREVER); // wait for a button to be pressed
 
         int newly_pressed = atomic_get(&inputs) & ~prev_inputs;
         if (lua_slots[atomic_get(&selected_page)].capture_input != LUA_INPUT_CAPTURE)
