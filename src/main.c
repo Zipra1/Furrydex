@@ -10,7 +10,7 @@
 #include <zephyr/drivers/spi.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "lcd.h"
+#include "drivers/ST7305.h"
 #include "imgdata.h"
 #include "fonts/font8.h"
 #include "paint.h"

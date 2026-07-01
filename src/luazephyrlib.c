@@ -21,7 +21,7 @@
 
 #include "paint.h"
 #include "input.h"
-#include "lcd.h" // todo: ifdef here for lcd/epaper
+#include "drivers/ST7305.h" // todo: ifdef here for lcd/epaper
 #include "imgdata.h"
 #include "lua_thread.h"
 #include "ui.h"

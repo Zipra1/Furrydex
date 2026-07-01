@@ -44,7 +44,6 @@ target_sources(app PRIVATE
     src/main.c
     src/imgdata.c
     src/fonts/font8.c
-    src/lcd.c
     src/paint.c
     src/console.c
     src/usb.c
@@ -55,4 +54,5 @@ target_sources(app PRIVATE
     src/AnalogIn.c
     src/battery.c
     src/drivers/74HC165.c
+    src/drivers/ST7305.c
 )

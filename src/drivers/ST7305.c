@@ -1,4 +1,4 @@
-#include "lcd.h"
+#include "ST7305.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>

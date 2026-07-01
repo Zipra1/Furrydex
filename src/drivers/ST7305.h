@@ -1,5 +1,5 @@
-#ifndef LCD_H
-#define LCD_H
+#ifndef ST7305_H
+#define ST7305_H
 
 #include <stdint.h>
 #include <stdbool.h>
