@@ -408,10 +408,10 @@ void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int se
     num_bubble = num_bubble - 1;
     while (i <= num_bubble)
     {
-        paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 4, 0);
+        paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT-6, 4, 0);
         if (i == selected_bubble)
         {
-            paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 2, 1);
+            paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT-6, 2, 1);
         }
         i++;
     }
