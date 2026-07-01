@@ -44,6 +44,12 @@ config FURRYDEX_DISPLAY_WIDTH
     help
       The width of the EPD displays RAM in bits
 
+config FURRYDEX_DISPLAY_OFFSET_X
+    int "Image offset for the X axis"
+    default 10
+    help
+      Offset the image n amount to the right (x axis). Useful for screens with dummy pixels.
+
 config FURRYDEX_DISPLAY_HEIGHT
     int "Display memory height"
     default 250

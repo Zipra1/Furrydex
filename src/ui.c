@@ -48,10 +48,10 @@ void draw_ui()
     if (!lua_slots[atomic_get(&selected_page)].hide_top)
     {
         // Battery indicator
-        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace, 9, 0);                                                               // battery body
-        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2, 7, 0);                                                                       // battery bump
-        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1, 2, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1, 8, 1);                                                       // battery white
-        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 + (atomic_get(&battery_percent) / battery_percent_divider), 7, 0); // battery fill
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 9, 0);                                                               // battery body
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 7, 0);                                                                       // battery bump
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 1 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 2, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - 1 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 8, 1);                                                       // battery white
+        paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width + 2 + (atomic_get(&battery_percent) / battery_percent_divider) - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 7, 0); // battery fill
     }
     if (!lua_slots[atomic_get(&selected_page)].hide_bottom)
     {

@@ -147,7 +147,7 @@ int main(void)
     initDisplay();
     invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
     printk("Display initialized\n");
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized");
+    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 
@@ -157,7 +157,7 @@ int main(void)
         return 0;
     }
 
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready");
+    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 
@@ -168,7 +168,7 @@ int main(void)
         return 0;
     }
 
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started");
+    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 
@@ -183,7 +183,7 @@ int main(void)
     {
         printk("Successfully mounted SD card\n");
 
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted");
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted");
         convertBuffer(main_buffer, output_buffer);
         Display(25, 0, 36, 125, output_buffer);
 
@@ -208,7 +208,7 @@ int main(void)
         ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
         fs_close(&data_filp);
 
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 10, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created");
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created");
         convertBuffer(main_buffer, output_buffer);
         Display(25, 0, 36, 125, output_buffer);
 
@@ -216,7 +216,7 @@ int main(void)
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
     }
 
-    blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 55, 77);
+    blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
 
     while (true)
     {

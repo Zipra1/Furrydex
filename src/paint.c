@@ -20,6 +20,7 @@ void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int tran
     int fontHeight = 8;
     int charStart = ((int)character - 32) * fontHeight;
     int stride = (buf_w + 7) / 8;
+    translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
     for (int i = 0; i < fontHeight; i++)
     {
@@ -54,6 +55,7 @@ void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_wi
     int len = strlen(string);
     int current_x = 0;
     int current_y = 0;
+    translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
     for (int i = 0; i < len; i++)
     {
@@ -76,6 +78,8 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
     int current_x = 0;
     int current_y = 0;
     int len = strlen(string);
+
+    translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
     for (int i = 0; i < len; i++)
     {
@@ -124,11 +128,18 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
 
 void invertRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y) // should uint8_t arrays be used instead of unsigned char arrays?
 {
-    start_x = (start_x < 0)    ? 0    : (start_x > buf_w) ? buf_w : start_x;
-    start_y = (start_y < 0)    ? 0    : (start_y > buf_h) ? buf_h : start_y;
-    end_x   = (end_x   < 0)    ? 0    : (end_x   > buf_w) ? buf_w : end_x;
-    end_y   = (end_y   < 0)    ? 0    : (end_y   > buf_h) ? buf_h : end_y;
-    
+    start_x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+    end_x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+
+    start_x = (start_x < 0) ? 0 : (start_x > buf_w) ? buf_w
+                                                    : start_x;
+    start_y = (start_y < 0) ? 0 : (start_y > buf_h) ? buf_h
+                                                    : start_y;
+    end_x = (end_x < 0) ? 0 : (end_x > buf_w) ? buf_w
+                                              : end_x;
+    end_y = (end_y < 0) ? 0 : (end_y > buf_h) ? buf_h
+                                              : end_y;
+
     int stride = (buf_w + 7) / 8; // Number of bytes per row
 
     for (int cur_y = start_y; cur_y < end_y; cur_y++)
@@ -152,6 +163,7 @@ void invert(uint8_t *buf, size_t size)
 
 void paintPixel(uint8_t *buf, int buf_w, int buf_h, int x, int y, int colour)
 {
+    x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
     int byte_idx = (y * (buf_w / 8)) + (x / 8);
     uint8_t bit_mask = 1 << (7 - (x % 8));
 
@@ -167,7 +179,8 @@ void paintPixel(uint8_t *buf, int buf_w, int buf_h, int x, int y, int colour)
 
 void paintLine(uint8_t *buf, int buf_w, int buf_h, int x0, int y0, int x1, int y1, int colour)
 {
-
+    x0 += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+    x1 += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     int err = (dx > dy ? dx : -dy) / 2, e2;
@@ -193,11 +206,18 @@ void paintLine(uint8_t *buf, int buf_w, int buf_h, int x0, int y0, int x1, int y
 
 void paintRegion(uint8_t *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y, int colour)
 {
-    start_x = (start_x < 0)    ? 0    : (start_x > buf_w) ? buf_w : start_x;
-    start_y = (start_y < 0)    ? 0    : (start_y > buf_h) ? buf_h : start_y;
-    end_x   = (end_x   < 0)    ? 0    : (end_x   > buf_w) ? buf_w : end_x;
-    end_y   = (end_y   < 0)    ? 0    : (end_y   > buf_h) ? buf_h : end_y;
-    
+    start_x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+    end_x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+
+    start_x = (start_x < 0) ? 0 : (start_x > buf_w) ? buf_w
+                                                    : start_x;
+    start_y = (start_y < 0) ? 0 : (start_y > buf_h) ? buf_h
+                                                    : start_y;
+    end_x = (end_x < 0) ? 0 : (end_x > buf_w) ? buf_w
+                                              : end_x;
+    end_y = (end_y < 0) ? 0 : (end_y > buf_h) ? buf_h
+                                              : end_y;
+
     int stride = (buf_w + 7) / 8;
 
     for (int cur_y = start_y; cur_y < end_y; cur_y++)
@@ -303,6 +323,8 @@ void FlipBuffer(uint8_t *buf, int physical_width, int height, bool flip_h, bool 
 
 void paintHorizontalLine(uint8_t *buf, int buf_w, int buf_h, int y, int x0, int x1, int colour)
 {
+    x0 += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
+    x1 += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
     if (y < 0 || y >= buf_h)
     {
         // printk("paintHorizontalLine @ paint.c: Out of bounds A!!!!!!\n");
@@ -381,9 +403,9 @@ void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int center_x, int cen
 
 void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int selected_bubble)
 {
-    int center = 71; // todo: calculate based off kconfig
+    int center = (CONFIG_FURRYDEX_DISPLAY_WIDTH - CONFIG_FURRYDEX_DISPLAY_OFFSET_X)/2;
     int i = 0;
-    num_bubble = num_bubble-1;
+    num_bubble = num_bubble - 1;
     while (i <= num_bubble)
     {
         paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), 244, 4, 0);
@@ -399,6 +421,7 @@ void blit(uint8_t *dst, int dst_w, int dst_h,
           const uint8_t *src, int src_w, int src_h,
           int x, int y)
 {
+    x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
     for (int row = 0; row < src_h; row++)
     {
         int dst_y = y + row;
@@ -426,10 +449,11 @@ void blit(uint8_t *dst, int dst_w, int dst_h,
 }
 
 void blitMask(uint8_t *dst, int dst_w, int dst_h,
-               const uint8_t *src, int src_w, int src_h,
-               const uint8_t *mask,
-               int x, int y)
+              const uint8_t *src, int src_w, int src_h,
+              const uint8_t *mask,
+              int x, int y)
 {
+    x += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
     for (int row = 0; row < src_h; row++)
     {
         int dst_y = y + row;

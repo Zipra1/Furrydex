@@ -7,9 +7,9 @@ local ball_radius = 2
 local ball_speed = 4
 local paddle_width = 15
 
-local paddle_pos = 71
+local paddle_pos = 61
 local ball_angle = math.pi / 2.5
-local ball_pos_x = 71
+local ball_pos_x = 61
 local ball_pos_y = 220
 
 local block_cols = 8
@@ -17,7 +17,7 @@ local block_rows = 4
 local block_w = 13
 local block_h = 7
 local block_gap = 2
-local block_start_x = 12
+local block_start_x = 2
 local block_start_y = 85
 
 local blocks = {}
@@ -25,17 +25,17 @@ local blocks_broken = 0
 
 local function reset()
     input.capture(2)
-    paddle_pos = 71
-    ball_pos_x = 71
+    paddle_pos = 61
+    ball_pos_x = 61
     ball_pos_y = 220
     blocks_broken = 0
     ball_speed = 4
     ball_angle = math.pi / 2.5
     while not input.get_input(input.A) do
         paint.clear()
-        paint.text(20, 50, 1, "Press A to start")
-        paint.text(14, 60, 1, "(UP/DOWN) # Rows: ")
-        paint.text(115, 60, 1, block_rows)
+        paint.text(10, 50, 1, "Press A to start")
+        paint.text(4, 60, 1, "(UP/DOWN) # Rows: ")
+        paint.text(105, 60, 1, block_rows)
         if input.get_input(input.UP) then
             block_rows = block_rows + 1
             zephyr.sleep(100)
@@ -107,11 +107,11 @@ while true do
     -- PADDLE INPUTS --
     -------------------
     if input.get_input(input.RIGHT) then -- right
-        if paddle_pos < (132 - paddle_width) then
+        if paddle_pos < (122 - paddle_width) then
             paddle_pos = paddle_pos + 3
         end
     elseif input.get_input(input.LEFT) then -- left
-        if paddle_pos > (10 + paddle_width) then
+        if paddle_pos > (paddle_width) then
             paddle_pos = paddle_pos - 3
         end
     end
@@ -119,14 +119,14 @@ while true do
     ---------------
     -- COLLISION --
     ---------------
-    if (ball_pos_x - ball_radius) < 10 then -- left wall
-        ball_pos_x = ball_radius + 10
+    if (ball_pos_x - ball_radius) < 0 then -- left wall
+        ball_pos_x = ball_radius
         ball_angle = math.pi - ball_angle
-    elseif (ball_pos_x + ball_radius) > 132 then -- right wall
-        ball_pos_x = 132 - ball_radius
+    elseif (ball_pos_x + ball_radius) > 122 then -- right wall
+        ball_pos_x = 122 - ball_radius
         ball_angle = math.pi - ball_angle
     end
-    paint.rect(10, 78, 132, 80, 0)
+    paint.rect(0, 78, 122, 80, 0)
     if (ball_pos_y < ball_radius + 80) then -- top wall
         ball_pos_y = ball_radius + 80
         ball_angle = (math.pi * 2) - ball_angle

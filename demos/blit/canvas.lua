@@ -11,10 +11,9 @@ local canvas = paint.new_canvas()
 -- By default, the canvas' dimensions are the same as the screens dimensions.
 
 paint.circle(55 + 16, 40 + 16, 10, 0, canvas)
--- By adding a canvas on the end of a paint function, it paints to that canvas
--- instead of the lua buffer.
+-- By adding a canvas on the end of a paint function, it paints to that canvas instead of the lua buffer.
 
-paint.blit(image, 55, 40)
+paint.blit(image, 45, 40)
 
 paint.display(canvas)
 -- paint.display accepts a mask, but it must be the same dimensions as the screen.
@@ -37,16 +36,16 @@ local canvas_2 = paint.new_canvas(32, 34)
 
 paint.circle(16, 16, 10, 0, canvas_2)
 paint.circle(26, 5, 3, 0, canvas_2)
-paint.circle(26-7, 5+7, 3, 1, canvas_2)
-paint.text(4,27,1,"meow",canvas_2)
+paint.circle(26 - 7, 5 + 7, 3, 1, canvas_2)
+paint.text(4, 27, 1, "meow", canvas_2)
 
 paint.clear()
-paint.blit(image, 55, 40, canvas_2)
+paint.blit(image, 45, 40, canvas_2)
 -- paint.blit accepts a mask
 
 paint.display()
 
-paint.blit(canvas_2, 55, 90)
+paint.blit(canvas_2, 45, 90)
 -- Instead of using as a mask, this is just showing what's on canvas_2
 
 paint.display()

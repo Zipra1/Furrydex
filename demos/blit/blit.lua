@@ -9,9 +9,9 @@ local image = paint.load_bmp("/SD:/blit/blit_test.bmp")
 paint.clear()
 
 -- Blit the image to the lua frame buffer
-paint.blit(image, 10, 40)
+paint.blit(image, 0, 40)
 -- The mask is optional. If you don't have one, blit will treat the entire image as opaque by default.
--- paint.blit(image, width, height, 10, 40)
+-- paint.blit(image, x, y)
 
 -- You can get the width and height from a canvas like so:
 print(image.width)

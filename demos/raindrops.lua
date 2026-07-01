@@ -5,7 +5,7 @@ local math = require("math")
 
 local drops = {}
 local MAX_DROPS = 10
-local WIDTH = 132
+local WIDTH = 122
 local HEIGHT = 250
 
 local function new_drop()
