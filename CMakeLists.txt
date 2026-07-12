@@ -55,4 +55,5 @@ target_sources(app PRIVATE
     src/battery.c
     src/drivers/74HC165.c
     src/drivers/ST7305.c
+    src/stubs/strlcpy.c
 )

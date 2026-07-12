@@ -9,6 +9,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include "disk.h"
+#include "stubs/strlcpy.h"
 
 LOG_MODULE_REGISTER(fdex_disk, CONFIG_LOG_DEFAULT_LEVEL);
 
