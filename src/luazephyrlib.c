@@ -424,17 +424,26 @@ static int lua_paint_invert_region(lua_State *L)
 
 int lua_paint_hide_top(lua_State *L)
 {
-    luaL_checktype(L,1,LUA_TBOOLEAN);
-    int input = lua_toboolean(L,1);
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    int input = lua_toboolean(L, 1);
     lua_slots[get_current_lua_slot()].hide_top = input;
     return 0;
 }
 
 int lua_paint_hide_bottom(lua_State *L)
 {
-    luaL_checktype(L,1,LUA_TBOOLEAN);
-    int input = lua_toboolean(L,1);
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    int input = lua_toboolean(L, 1);
     lua_slots[get_current_lua_slot()].hide_bottom = input;
+    return 0;
+}
+
+int lua_paint_tray(lua_State *L)
+{
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    int input = lua_toboolean(L, 1);
+    lua_slots[get_current_lua_slot()].in_tray = input;
+    num_shown_lua_threads = recount_shown_lua_threads();
     return 0;
 }
 
@@ -454,6 +463,7 @@ static const luaL_Reg paint_funcs[] = {
     {"invert_region", lua_paint_invert_region},
     {"hide_top", lua_paint_hide_top},
     {"hide_bottom", lua_paint_hide_bottom},
+    {"tray", lua_paint_tray},
     {NULL, NULL},
 };
 

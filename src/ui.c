@@ -17,24 +17,46 @@
 
 atomic_t selected_page = ATOMIC_INIT(0);
 
+
+
 void page_left()
 {
-    atomic_dec(&selected_page);
-    if (atomic_get(&selected_page) < 0)
+    int original_page = atomic_get(&selected_page);
+    while (true)
     {
-        atomic_set(&selected_page, 0);
+        atomic_dec(&selected_page);
+        if (atomic_get(&selected_page) < 0)
+        {
+            atomic_set(&selected_page, original_page);
+            break;
+        }
+        if (lua_slots[atomic_get(&selected_page)].in_tray == false)
+        {
+            break;
+        }
     }
     lua_thread_update_priorities(atomic_get(&selected_page));
+    update_visible_lua_slot_index();
 }
 
 void page_right()
 {
-    atomic_inc(&selected_page);
-    if (atomic_get(&selected_page) > num_lua_threads)
+    int original_page = atomic_get(&selected_page);
+    while (true)
     {
-        atomic_set(&selected_page, num_lua_threads);
+        atomic_inc(&selected_page);
+        if (atomic_get(&selected_page) > num_lua_threads)
+        {
+            atomic_set(&selected_page, original_page);
+            break;
+        }
+        if (lua_slots[atomic_get(&selected_page)].in_tray == false)
+        {
+            break;
+        }
     }
     lua_thread_update_priorities(atomic_get(&selected_page));
+    update_visible_lua_slot_index();
 }
 
 void draw_ui()
@@ -55,7 +77,7 @@ void draw_ui()
     }
     if (!lua_slots[atomic_get(&selected_page)].hide_bottom)
     {
-        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_lua_threads + 1, atomic_get(&selected_page));
+        paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_shown_lua_threads + 1, atomic_get(&visible_slot_index));
     }
     k_mutex_unlock(&paint_mutex);
 }

@@ -24,6 +24,7 @@ typedef struct {
     // 3 = listen (always)
     bool hide_top;
     bool hide_bottom;
+    bool in_tray;
 } lua_thread_slot_t;
 
 #define LUA_INPUT_NONE 0
@@ -33,11 +34,15 @@ typedef struct {
 
 extern lua_thread_slot_t lua_slots[CONFIG_LUA_MAX_THREADS];
 
+extern atomic_t visible_slot_index;
 extern int num_lua_threads;
+extern int num_shown_lua_threads;
 
 int lua_thread_start(const struct shell *shell, char *script, char *name);
 int lua_thread_kill(int slot);
 int get_current_lua_slot(void);
 int lua_thread_update_priorities(int selected_slot);
+int recount_shown_lua_threads(void);
+int update_visible_lua_slot_index();
 
 #endif
