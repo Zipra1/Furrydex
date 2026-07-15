@@ -63,8 +63,18 @@ static void lua_thread_cancel_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
+void lua_thread_free_icon(lua_thread_slot_t *slot)
+{
+    if (slot->icon)
+    {
+        free(slot->icon);
+        slot->icon = NULL;
+    }
+}
+
 static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
 {
+    lua_thread_free_icon(slot);
     slot->kill_requested = false;
     slot->state = NULL;
     slot->capture_input = LUA_INPUT_LISTEN_GATED;

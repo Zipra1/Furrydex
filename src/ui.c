@@ -17,8 +17,6 @@
 
 atomic_t selected_page = ATOMIC_INIT(0);
 
-
-
 void page_left()
 {
     int original_page = atomic_get(&selected_page);
@@ -59,6 +57,21 @@ void page_right()
     update_visible_lua_slot_index();
 }
 
+void update_tray_icons()
+{
+    int length = sizeof(lua_slots) / sizeof(lua_slots[0]);
+    int i;
+    int i_trayed;
+    for (i = 0; i < length; i++)
+    {
+        if (lua_slots[i].in_tray && lua_slots[i].icon)
+        {
+            blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, lua_slots[i].icon, 8, 8, i*8, 1);
+            i_trayed++;
+        }
+    }
+}
+
 void draw_ui()
 {
     int battery_width = 30;
@@ -69,6 +82,7 @@ void draw_ui()
 
     if (!lua_slots[atomic_get(&selected_page)].hide_top)
     {
+        update_tray_icons();
         // Battery indicator
         paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_width - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 1, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 9, 0);                                                               // battery body
         paintRegion(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, CONFIG_FURRYDEX_DISPLAY_WIDTH - 4 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 3, CONFIG_FURRYDEX_DISPLAY_WIDTH - battery_whitespace + 2 - CONFIG_FURRYDEX_DISPLAY_OFFSET_X, 7, 0);                                                                       // battery bump

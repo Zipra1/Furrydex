@@ -24,27 +24,14 @@
 #include "drivers/ST7305.h" // todo: ifdef here for lcd/epaper
 #include "imgdata.h"
 #include "lua_thread.h"
+#include "luazephyrlib.h"
 #include "ui.h"
 #include "battery.h"
 #include "disk.h"
 
-typedef struct
-{
-    int type;
-    int width;
-    int height;
-    struct
-    {
-        size_t size;
-        void *ptr;
-    };
-} canvas_t;
-
 ///////////////
 ///  PAINT  ///
 ///////////////
-
-#define T_CANVAS 2
 
 static int lua_canvas_gc(lua_State *L)
 {
@@ -75,7 +62,6 @@ static int lua_paint_new_canvas(lua_State *L)
     size_t size = ((w + 7) / 8) * h;
 
     canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
-    canvas->type = T_CANVAS;
     canvas->width = w;
     canvas->height = h;
     canvas->size = size;
@@ -271,6 +257,33 @@ static int lua_paint_text_wrap(lua_State *L)
     return 1;
 }
 
+static int lua_paint_icon_set(lua_State *L)
+{
+    int src_w, src_h;
+    const uint8_t *src = NULL;
+    size_t icon_size = 8;
+
+    canvas_t *src_canvas = luaL_checkudata(L, 1, "paint.canvas");
+    src_w = src_canvas->width;
+    src_h = src_canvas->height;
+    src = (const uint8_t *)src_canvas->ptr;
+
+    if (src_w != 8 || src_h != 8)
+    {
+        return luaL_error(L, "Incorrect dimensions. Icon must be 8x8");
+    }
+
+    lua_thread_slot_t *slot = &lua_slots[get_current_lua_slot()];
+    lua_thread_free_icon(slot);
+    slot->icon = malloc(icon_size);
+    if (!slot->icon)
+    {
+        return luaL_error(L, "out of memory");
+    }
+    memcpy(slot->icon, src, icon_size);
+    return 0;
+}
+
 static int lua_paint_blit(lua_State *L)
 {
     const uint8_t *src = NULL;
@@ -355,7 +368,6 @@ static int lua_paint_load_bmp(lua_State *L)
 
     uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
     canvas_t *canvas = lua_newuserdata(L, sizeof(canvas_t));
-    canvas->type = T_CANVAS;
     canvas->width = bmp_w;
     canvas->height = bmp_h;
     canvas->size = out_size;
@@ -464,6 +476,7 @@ static const luaL_Reg paint_funcs[] = {
     {"hide_top", lua_paint_hide_top},
     {"hide_bottom", lua_paint_hide_bottom},
     {"tray", lua_paint_tray},
+    {"set_tray_icon", lua_paint_icon_set},
     {NULL, NULL},
 };
 
