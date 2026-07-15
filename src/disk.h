@@ -5,10 +5,12 @@
 #include <stddef.h>
 #include <zephyr/fs/fs.h>
 
+#define LSDIR_MAX_NAME_LEN 32
+
 typedef struct {
-    char   name[MAX_FILE_NAME + 1]; /**< Null-terminated entry name.          */
-    bool   is_dir;                  /**< True if directory, false if file.    */
-    size_t size;                    /**< File size in bytes (files only).     */
+    char   name[LSDIR_MAX_NAME_LEN]; /**< Compact, null-terminated entry name. */
+    bool   is_dir;                    /**< True if directory, false if file.    */
+    size_t size;                      /**< File size in bytes (files only).     */
 } lsdir_entry_t;
 
 typedef struct {

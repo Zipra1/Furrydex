@@ -71,9 +71,10 @@ int lsdir(const char *path, lsdir_result_t *result)
 
     fs_dir_t_init(&dirp);
 
+    printk("lsdir: opening '%s'\n", path);
     res = fs_opendir(&dirp, path);
     if (res) {
-        printk("Error opening dir %s [%d]\n", path, res);
+        printk("lsdir: fs_opendir('%s') failed [%d]\n", path, res);
         return res;
     }
 
@@ -81,6 +82,7 @@ int lsdir(const char *path, lsdir_result_t *result)
     for (;;) {
         res = fs_readdir(&dirp, &entry);
         if (res) {
+            printk("lsdir: fs_readdir(pass1) failed [%d]\n", res);
             break;
         }
         if (entry.name[0] == '\0') {    // end-of-directory marker
@@ -90,21 +92,27 @@ int lsdir(const char *path, lsdir_result_t *result)
         count++;
     }
 
+    printk("lsdir: pass1 found %d entries, final res=%d\n", count, res);
     fs_closedir(&dirp);
 
     if (res != 0 || count == 0) {
         return res;
     }
 
-    lsdir_entry_t *entries = malloc((size_t)count * sizeof(*entries));
+    lsdir_entry_t *entries = NULL;
+    size_t bytes_needed = (size_t)count * sizeof(*entries);
+    entries = malloc(bytes_needed);
     if (!entries) {
+        printk("Out of heap while listing %s (%d entries, %zu bytes)\n",
+               path, count, bytes_needed);
         return -ENOMEM;
     }
 
+    printk("lsdir: re-opening '%s' for pass2\n", path);
     res = fs_opendir(&dirp, path);
     if (res) {
         free(entries);
-        printk("Error re-opening dir %s [%d]\n", path, res);
+        printk("lsdir: fs_opendir(pass2) failed for '%s' [%d]\n", path, res);
         return res;
     }
 
@@ -112,6 +120,7 @@ int lsdir(const char *path, lsdir_result_t *result)
     for (;;) {
         res = fs_readdir(&dirp, &entry);
         if (res) {
+            printk("lsdir: fs_readdir(pass2) failed [%d]\n", res);
             break;
         }
 
@@ -136,6 +145,7 @@ int lsdir(const char *path, lsdir_result_t *result)
         filled++;
     }
 
+    printk("lsdir: pass2 filled %d entries, final res=%d\n", filled, res);
     fs_closedir(&dirp);
 
     if (res == 0) {
