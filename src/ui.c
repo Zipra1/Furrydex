@@ -64,9 +64,16 @@ void update_tray_icons()
     int i_trayed;
     for (i = 0; i < length; i++)
     {
-        if (lua_slots[i].in_tray && lua_slots[i].icon)
+        if (lua_slots[i].in_tray)
         {
-            blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, lua_slots[i].icon, 8, 8, i*8, 1);
+            if (lua_slots[i].icon)
+            {
+                blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, lua_slots[i].icon, 8, 8, i * 8, 1);
+            }
+            else
+            {
+                blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, lua_default_tray_icon, 8, 8, i * 8, 1);
+            }
             i_trayed++;
         }
     }

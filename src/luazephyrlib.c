@@ -142,7 +142,7 @@ static int lua_paint_pixel(lua_State *L)
     canvas_t *canvas = luaL_testudata(L, 4, "paint.canvas");
     if (canvas)
     {
-        paintPixel(canvas->ptr, canvas->width, canvas->height, x, y, colour);
+        paintPixel(canvas->ptr, canvas->width, canvas->height, x-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y, colour);
     }
     else if (should_display())
     {
@@ -163,7 +163,7 @@ static int lua_paint_rect(lua_State *L)
     canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
     if (canvas)
     {
-        paintRegion(canvas->ptr, canvas->width, canvas->height, x1, y1, x2, y2, colour);
+        paintRegion(canvas->ptr, canvas->width, canvas->height, x1-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y1, x2-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y2, colour);
     }
     else if (should_display())
     {
@@ -186,7 +186,7 @@ static int lua_paint_circle(lua_State *L)
         paintFilledCircle(canvas->ptr,
                           canvas->width,
                           canvas->height,
-                          x, y, r, colour);
+                          x-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y, r, colour);
     }
     else if (should_display())
     {
@@ -231,7 +231,7 @@ static int lua_paint_text(lua_State *L)
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintText(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, x, y, text);
+        paintText(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, canvas ? x-CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x, y, text);
         k_mutex_unlock(&lua_paint_mutex);
     }
     return 0;
@@ -250,7 +250,7 @@ static int lua_paint_text_wrap(lua_State *L)
     if (should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        lines = paintTextWrap(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, x, y, width, text);
+        lines = paintTextWrap(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, canvas ? x-CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x, y, width, text);
         k_mutex_unlock(&lua_paint_mutex);
     }
     lua_pushinteger(L, lines);
@@ -423,7 +423,7 @@ static int lua_paint_invert_region(lua_State *L)
     canvas_t *canvas = luaL_testudata(L, 5, "paint.canvas");
     if (canvas)
     {
-        invertRegion(canvas->ptr, canvas->width, canvas->height, x1, y1, x2, y2);
+        invertRegion(canvas->ptr, canvas->width, canvas->height, x1-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y1, x2-CONFIG_FURRYDEX_DISPLAY_OFFSET_X, y2);
     }
     else if (should_display())
     {
