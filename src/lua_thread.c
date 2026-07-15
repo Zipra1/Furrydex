@@ -127,6 +127,12 @@ atomic_t visible_slot_index = ATOMIC_INIT(0);
 int update_visible_lua_slot_index()
 {
     int slot = atomic_get(&selected_page);
+    if (slot < 0)
+    {
+        atomic_set(&visible_slot_index, num_shown_lua_threads);
+        return num_shown_lua_threads;
+    }
+
     int index = 0;
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {
@@ -142,14 +148,15 @@ int update_visible_lua_slot_index()
         index++;
     }
 
-    if (slot == num_lua_threads)
-    {
-        atomic_set(&visible_slot_index, num_shown_lua_threads);
-        return num_shown_lua_threads;
-    }
-
     atomic_set(&visible_slot_index, 0);
     return 0;
+}
+
+void lua_thread_refresh_ui_state(void)
+{
+    num_lua_threads = recount_lua_threads();
+    num_shown_lua_threads = recount_shown_lua_threads();
+    update_visible_lua_slot_index();
 }
 
 static void lua_thread_entry(void *a, void *b, void *c)
@@ -232,8 +239,7 @@ static void lua_thread_entry(void *a, void *b, void *c)
     slot->script = NULL;
     slot->shell = NULL;
     slot->in_use = false;
-    num_lua_threads = recount_lua_threads();
-    num_shown_lua_threads = recount_shown_lua_threads();
+    lua_thread_refresh_ui_state();
 }
 int num_lua_threads = 0;
 int num_shown_lua_threads = 0;
@@ -265,8 +271,7 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
                             K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
             snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), name, i);
             k_thread_name_set(&lua_slots[i].thread, lua_slots[i].name);
-            num_lua_threads = recount_lua_threads();
-            num_shown_lua_threads = recount_shown_lua_threads();
+            lua_thread_refresh_ui_state();
             return i;
         }
     }

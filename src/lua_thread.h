@@ -46,6 +46,7 @@ int get_current_lua_slot(void);
 int lua_thread_update_priorities(int selected_slot);
 int recount_shown_lua_threads(void);
 int update_visible_lua_slot_index(void);
+void lua_thread_refresh_ui_state(void);
 void lua_thread_free_icon(lua_thread_slot_t *slot);
 
 #endif
