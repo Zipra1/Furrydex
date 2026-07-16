@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <errno.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
@@ -14,6 +15,8 @@
 #include "paint.h"
 #include "disk.h"
 #include "lua_thread.h"
+#include "drivers/ST7305.h"
+
 
 K_MUTEX_DEFINE(page_select_mutex);
 
@@ -281,6 +284,45 @@ SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
+
+static int cmd_display(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 2)
+    {
+        shell_error(sh, "Usage: display <command> [data ...]");
+        return -EINVAL;
+    }
+
+    char *end = NULL;
+    errno = 0;
+    long command = strtol(argv[1], &end, 0);
+    if (errno != 0 || end == argv[1] || *end != '\0' || command < 0 || command > 0xFF)
+    {
+        shell_error(sh, "Invalid command value '%s'", argv[1]);
+        return -EINVAL;
+    }
+
+    sendCommand((uint8_t)command);
+
+    for (size_t i = 2; i < argc; i++)
+    {
+        errno = 0;
+        long value = strtol(argv[i], &end, 0);
+        if (errno != 0 || end == argv[i] || *end != '\0' || value < 0 || value > 0xFF)
+        {
+            shell_error(sh, "Invalid data value '%s'", argv[i]);
+            return -EINVAL;
+        }
+
+        sendData((uint8_t)value);
+    }
+
+    shell_print(sh, "Sent display command 0x%02X with %zu data byte(s)",
+                (unsigned int)(uint8_t)command, argc - 2);
+    return 0;
+}
+
+SHELL_CMD_REGISTER(display, NULL, "Send raw display commands and data bytes", cmd_display);
 
 // INFO
 
