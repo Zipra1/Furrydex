@@ -332,14 +332,77 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 #define ST7305_CMD_LPM 0x39    /* Low Power Mode ON   (§8.1.23) */
 #define ST7305_CMD_FRCTRL 0xB2 /* Frame Rate Control  (§8.2.3)  */
 
+// HPM framerates work fine
+// LPM framerates seem to be stuck at 8Hz
+// Maybe due to voltage settings?? but i have no fucking clue Tbh (┬┬﹏┬┬)
+
+void enterLPM()
+{
+    sendCommand(ST7305_CMD_HPM);
+    // voltages are being set wrong
+    // these should have data for lpm/hpm i think
+    // sendCommand(0xC1);
+    // sendCommand(0xC2);
+    // sendCommand(0xC4);
+    // sendCommand(0xC5);
+    // sendCommand(0xC9);
+    k_msleep(20);
+    sendCommand(ST7305_CMD_LPM);
+    k_msleep(100);
+}
+
+void enterHPM()
+{
+    sendCommand(0x39);
+    sendCommand(0x38);
+    k_msleep(300);
+
+}
+
 int setFPS(int fps)
 {
-    if (fps == 25) // 0.25Hz
+    if (fps == 1600) // 16Hz
     {
-        sendCommand(ST7305_CMD_LPM);
-        
+        sendCommand(ST7305_CMD_HPM);
+
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0x00);
+
         sendCommand(0xD8); // OSC setting
         sendData(0xA6);
+        sendData(0xE9);
+    }
+    if (fps == 2550) // 25.5Hz
+    {
+        sendCommand(ST7305_CMD_HPM);
+
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0x00);
+
+        sendCommand(0xD8); // OSC setting
+        sendData(0x80);
+        sendData(0xE9);
+    }
+    if (fps == 3200) // 32Hz
+    {
+        sendCommand(ST7305_CMD_HPM);
+
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0x16);
+
+        sendCommand(0xD8); // OSC setting
+        sendData(0xA6);
+        sendData(0xE9);
+    }
+    if (fps == 5100) // 51Hz
+    {
+        sendCommand(ST7305_CMD_HPM);
+
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0x16);
+
+        sendCommand(0xD8); // OSC setting
+        sendData(0x80);
         sendData(0xE9);
     }
 }

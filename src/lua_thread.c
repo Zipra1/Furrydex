@@ -63,13 +63,24 @@ static void lua_thread_cancel_hook(lua_State *L, lua_Debug *ar)
     }
 }
 
+void lua_thread_free_icon(lua_thread_slot_t *slot)
+{
+    if (slot->icon)
+    {
+        free(slot->icon);
+        slot->icon = NULL;
+    }
+}
+
 static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
 {
+    lua_thread_free_icon(slot);
     slot->kill_requested = false;
     slot->state = NULL;
     slot->capture_input = LUA_INPUT_LISTEN_GATED;
     slot->hide_top = false;
     slot->hide_bottom = false;
+    slot->in_tray = false;
 }
 
 int lua_thread_update_priorities(int selected_slot)
@@ -96,6 +107,56 @@ int recount_lua_threads(void)
         }
     }
     return count;
+}
+
+int recount_shown_lua_threads(void)
+{
+    int count = 0;
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (lua_slots[i].in_use && lua_slots[i].in_tray == false)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+atomic_t visible_slot_index = ATOMIC_INIT(0);
+
+int update_visible_lua_slot_index()
+{
+    int slot = atomic_get(&selected_page);
+    if (slot < 0)
+    {
+        atomic_set(&visible_slot_index, num_shown_lua_threads);
+        return num_shown_lua_threads;
+    }
+
+    int index = 0;
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (!lua_slots[i].in_use || lua_slots[i].in_tray)
+        {
+            continue;
+        }
+        if (i == slot)
+        {
+            atomic_set(&visible_slot_index, index);
+            return index;
+        }
+        index++;
+    }
+
+    atomic_set(&visible_slot_index, 0);
+    return 0;
+}
+
+void lua_thread_refresh_ui_state(void)
+{
+    num_lua_threads = recount_lua_threads();
+    num_shown_lua_threads = recount_shown_lua_threads();
+    update_visible_lua_slot_index();
 }
 
 static void lua_thread_entry(void *a, void *b, void *c)
@@ -178,9 +239,10 @@ static void lua_thread_entry(void *a, void *b, void *c)
     slot->script = NULL;
     slot->shell = NULL;
     slot->in_use = false;
-    num_lua_threads = recount_lua_threads();
+    lua_thread_refresh_ui_state();
 }
 int num_lua_threads = 0;
+int num_shown_lua_threads = 0;
 
 int lua_thread_start(const struct shell *shell, char *script, char *name)
 {
@@ -209,7 +271,7 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
                             K_LOWEST_APPLICATION_THREAD_PRIO, 0, K_NO_WAIT);
             snprintf(lua_slots[i].name, sizeof(lua_slots[i].name), name, i);
             k_thread_name_set(&lua_slots[i].thread, lua_slots[i].name);
-            num_lua_threads = recount_lua_threads();
+            lua_thread_refresh_ui_state();
             return i;
         }
     }

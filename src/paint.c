@@ -20,7 +20,6 @@ void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int tran
     int fontHeight = 8;
     int charStart = ((int)character - 32) * fontHeight;
     int stride = (buf_w + 7) / 8;
-    translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
     for (int i = 0; i < fontHeight; i++)
     {

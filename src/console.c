@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <errno.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
@@ -13,6 +14,9 @@
 #include "ui.h"
 #include "paint.h"
 #include "disk.h"
+#include "lua_thread.h"
+#include "drivers/ST7305.h"
+
 
 K_MUTEX_DEFINE(page_select_mutex);
 
@@ -64,9 +68,48 @@ static int cmd_page_right(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+static int cmd_page_get(const struct shell *sh, size_t argc, char **argv)
+{
+    int selected = atomic_get(&selected_page);
+
+    if (argc > 2)
+    {
+        shell_print(sh, "Usage: page get [slot]");
+        return 0;
+    }
+
+    if (argc == 2)
+    {
+        selected = atoi(argv[1]);
+    }
+
+    if (selected < 0 || selected >= CONFIG_LUA_MAX_THREADS)
+    {
+        shell_print(sh, "selected page %d is out of range", selected);
+        return 0;
+    }
+
+    lua_thread_slot_t *slot = &lua_slots[selected];
+    shell_print(sh,
+                "slot=%d\nin_use=%d\nin_tray=%d\nhide_top=%d\nhide_bottom=%d\ncapture_input=%d\nkill_requested=%d\nhas_icon=%d\npriority=%d\nname=%s\ncurrent visible slot=%d",
+                selected,
+                slot->in_use,
+                slot->in_tray,
+                slot->hide_top,
+                slot->hide_bottom,
+                slot->capture_input,
+                slot->kill_requested,
+                slot->icon != NULL,
+                k_thread_priority_get(&slot->thread),
+                slot->name,
+                atomic_get(&visible_slot_index));
+    return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_page,
                                SHELL_CMD(left, NULL, "Navigate left of currently selected page", cmd_page_left),
                                SHELL_CMD(right, NULL, "Navigate right of currently selected page", cmd_page_right),
+                               SHELL_CMD(get, NULL, "Print currently selected page", cmd_page_get),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(page, &sub_page, "Page navigation", NULL);
 
@@ -241,6 +284,45 @@ SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
+
+static int cmd_display(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 2)
+    {
+        shell_error(sh, "Usage: display <command> [data ...]");
+        return -EINVAL;
+    }
+
+    char *end = NULL;
+    errno = 0;
+    long command = strtol(argv[1], &end, 0);
+    if (errno != 0 || end == argv[1] || *end != '\0' || command < 0 || command > 0xFF)
+    {
+        shell_error(sh, "Invalid command value '%s'", argv[1]);
+        return -EINVAL;
+    }
+
+    sendCommand((uint8_t)command);
+
+    for (size_t i = 2; i < argc; i++)
+    {
+        errno = 0;
+        long value = strtol(argv[i], &end, 0);
+        if (errno != 0 || end == argv[i] || *end != '\0' || value < 0 || value > 0xFF)
+        {
+            shell_error(sh, "Invalid data value '%s'", argv[i]);
+            return -EINVAL;
+        }
+
+        sendData((uint8_t)value);
+    }
+
+    shell_print(sh, "Sent display command 0x%02X with %zu data byte(s)",
+                (unsigned int)(uint8_t)command, argc - 2);
+    return 0;
+}
+
+SHELL_CMD_REGISTER(display, NULL, "Send raw display commands and data bytes", cmd_display);
 
 // INFO
 
