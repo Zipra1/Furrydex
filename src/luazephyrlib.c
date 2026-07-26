@@ -6,10 +6,12 @@
 #include <zephyr/drivers/flash.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
+#include <zephyr/shell/shell.h>
 
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/fs_interface.h>
+#include <zephyr/console/console.h>
 #include "lua/lauxlib.h"
 #include "lua/lua.h"
 #include <zephyr/storage/disk_access.h>
@@ -424,16 +426,16 @@ static int lua_paint_invert_region(lua_State *L)
 
 int lua_paint_hide_top(lua_State *L)
 {
-    luaL_checktype(L,1,LUA_TBOOLEAN);
-    int input = lua_toboolean(L,1);
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    int input = lua_toboolean(L, 1);
     lua_slots[get_current_lua_slot()].hide_top = input;
     return 0;
 }
 
 int lua_paint_hide_bottom(lua_State *L)
 {
-    luaL_checktype(L,1,LUA_TBOOLEAN);
-    int input = lua_toboolean(L,1);
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    int input = lua_toboolean(L, 1);
     lua_slots[get_current_lua_slot()].hide_bottom = input;
     return 0;
 }
@@ -547,6 +549,35 @@ LUAMOD_API int luaopen_input(lua_State *L)
         lua_setfield(L, -2, key); // ← sets input.LEFT, input.RIGHT, etc.
     }
 
+    return 1;
+}
+
+/////////////
+/// SHELL ///
+/////////////
+
+static int lua_shell_receive(lua_State *L)
+{
+    int timeout_s = luaL_optinteger(L, 1, 5);
+    if (timeout_s < 0)
+    {
+        return luaL_error(L, "timeout must be >= 0");
+    }
+
+    char *testmessage = "testmessage";
+
+    lua_pushlstring(L, testmessage, strlen(testmessage));
+    return 1;
+}
+
+static const luaL_Reg shell_funcs[] = {
+    {"receive", lua_shell_receive},
+    {NULL, NULL},
+};
+
+LUAMOD_API int luaopen_shell(lua_State *L)
+{
+    luaL_newlib(L, shell_funcs);
     return 1;
 }
 

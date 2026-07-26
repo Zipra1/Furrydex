@@ -22,6 +22,7 @@ lua_thread_slot_t lua_slots[CONFIG_LUA_MAX_THREADS] = {0};
 extern int lua_sleep_ms(lua_State *L);
 extern int luaopen_paint(lua_State *L);
 extern int luaopen_input(lua_State *L);
+extern int luaopen_shell(lua_State *L);
 
 static uint8_t lua_alloc_pool[CONFIG_LUA_HEAP_SIZE];
 static struct k_heap lua_heap;
@@ -146,6 +147,8 @@ static void lua_thread_entry(void *a, void *b, void *c)
     lua_setfield(state, -2, "paint");
     lua_pushcfunction(state, luaopen_input);
     lua_setfield(state, -2, "input");
+    lua_pushcfunction(state, luaopen_shell);
+    lua_setfield(state, -2, "shell");
     // lua_pushcfunction(state, luaopen_zephyr);
     // lua_setfield(state, -2, "zephyr");
     lua_pop(state, 1);
