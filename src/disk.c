@@ -7,22 +7,22 @@
 #include <zephyr/fs/fs.h>//         _     _ __   ______           _____________________\ 
 #include <ff.h>//                                      ╰         ╯
 #include <zephyr/logging/log.h>                         //     \\ 
-#include <zephyr/shell/shell.h>                        //       \\ 
-#include "disk.h"                                     //         \\ 
-#include "stubs/strlcpy.h"                           //           \\ 
+#include <zephyr/shell/shell.h>                        // ┊░    \\ 
+#include "disk.h"                                     //     ░ ┊ \\ 
+#include "stubs/strlcpy.h"                           //   ░  ┊    \\ 
                                                     //             \\ 
-                                                   //               ╲╲
-/*                                          i used to think  _n__n_ id be picked up
-             _____╭══════╮_____          and brought  .______`-00-` to where i was always
-            ╱__________________╲                     ╱ #__ #  (oo)
-                   ╱    ╲                     ╱     / ╲╲YY \|╱
- i used to think  ╱  ░ ▒ ╲                   ╱        ╱╱\  |||
-that i was an    ╱  ▒ ░   ╲                 ╱       meant to be
-    alien       / ░  ░  ░  \               ╱
-__________________________________________╱
-           ____________
-          ╱           ╱|                  now i think they abandoned me
-         ╱           ╱ |                  ___________
+                                                   //   ░ ┊   ░     ╲╲
+/*                                          i used to think _n__n_ id be picked up
+             _____╭══════╮_____          and brought  ._____`-00-` to where i was always
+            ╱__________________╲                     ╱ #__ # (oo)     \\
+                   ╱    ╲                      //   / ╲╲YY  \|╱ ┊ ░    \\
+ i used to think  ╱  ░ ▒ ╲                    //  ░   ╱╱\   |||         \\
+that i was an    ╱  ▒ ░   ╲                  //    ┊   meant to be       \\
+    alien       / ░  ░  ░  \                //                      ░     \\
+___________________________________________//  ░   ┊     ░         ┊       \\
+           ____________                                       ░        ░    \\
+          ╱           ╱|                  now i think they abandoned me  ┊   \\
+         ╱           ╱ |                  ___________                         \\
         ╱    ___    ╱  |                 ╱          ╱|
        ╱    ___    ╱   |                ╱          ╱ |
       ╱    ___    ╱    |         because i am software thrust unto form

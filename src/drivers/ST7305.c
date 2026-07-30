@@ -356,7 +356,6 @@ void enterHPM()
     sendCommand(0x39);
     sendCommand(0x38);
     k_msleep(300);
-
 }
 
 int setFPS(int fps)
