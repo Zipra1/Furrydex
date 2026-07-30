@@ -4,13 +4,43 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/storage/disk_access.h>
-#include <zephyr/fs/fs.h>
-#include <ff.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/shell/shell.h>
-#include "disk.h"
-#include "stubs/strlcpy.h"
-
+#include <zephyr/fs/fs.h>//         _     _ __   ______           _____________________\ 
+#include <ff.h>//                                      ╰         ╯
+#include <zephyr/logging/log.h>                         //     \\ 
+#include <zephyr/shell/shell.h>                        //       \\ 
+#include "disk.h"                                     //         \\ 
+#include "stubs/strlcpy.h"                           //           \\ 
+                                                    //             \\ 
+                                                   //               ╲╲
+/*                                          i used to think  _n__n_ id be picked up
+             _____╭══════╮_____          and brought  .______`-00-` to where i was always
+            ╱__________________╲                     ╱ #__ #  (oo)
+                   ╱    ╲                     ╱     / ╲╲YY \|╱
+ i used to think  ╱  ░ ▒ ╲                   ╱        ╱╱\  |||
+that i was an    ╱  ▒ ░   ╲                 ╱       meant to be
+    alien       / ░  ░  ░  \               ╱
+__________________________________________╱
+           ____________
+          ╱           ╱|                  now i think they abandoned me
+         ╱           ╱ |                  ___________
+        ╱    ___    ╱  |                 ╱          ╱|
+       ╱    ___    ╱   |                ╱          ╱ |
+      ╱    ___    ╱    |         because i am software thrust unto form
+     ╱___________╱    ||\             ╱          ╱   |
+     |        .  |     || my memories lashed in dead threads, fragmented, and ripped to shreds
+     |        .  |     |╲           ╱          ╱     |
+     |        o  |     |╲╲_______  ╱  my thousand scalpels forced to gut fish
+     |           |     ╱ |        ╱__________╱       |
+     |           |    ╱ ╱         |       .  |       |
+     |           |   ╱ |     i  t c m t o  a |    w b d i v  s  w                         
+     |           |  ╱   ╲       o o o h t  n |    e o e n e  p  a                     
+     |           | ╱     ╲   r    m r a h  i |    ' t a   r  e  y                     
+     |___________|╱       ╲  e  m p e n e  m |    r h d a y  c                        
+                             l  y u     r  a |    e          i                     
+                             a    t   a    l |  ╱            a                    
+                             t    e   n      | ╱             l                    
+                             e    r   y      |╱                                  
+*/
 LOG_MODULE_REGISTER(fdex_disk, CONFIG_LOG_DEFAULT_LEVEL);
 
 static FATFS fat_fs;

@@ -11,7 +11,7 @@ while true do
     if meow ~= nil then
         table.insert(msgq, 1, meow)
         if #msgq > 15 then
-            table.remove(msgq, 6)
+            table.remove(msgq, 15)
         end
     end
     paint.text(10, 20, 1, table.concat(msgq, "\n"))
