@@ -247,4 +247,9 @@ int main(void)
 //   /         /___|    |   It points to the sky
 //  /         /  |#     |
 // /         /   |#   Do we really worship the same God?
-///         /    |      |
+/*/         /    |      |
+           /     ;      |  
+         .       .      :
+                        ;
+
+   */
