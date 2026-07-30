@@ -45,7 +45,8 @@ target_sources(app PRIVATE
     src/imgdata.c
     src/fonts/font8.c
     src/paint.c
-    src/console.c
+    src/console/shell_commands.c
+    src/console/console_router.c
     src/usb.c
     src/lua_thread.c
     src/disk.c

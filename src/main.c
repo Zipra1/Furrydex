@@ -14,7 +14,7 @@
 #include "imgdata.h"
 #include "fonts/font8.h"
 #include "paint.h"
-#include "console.h"
+#include "console/shell_commands.h"
 #include "usb.h"
 #include "luazephyrlib.h"
 #include "disk.h"
@@ -22,6 +22,7 @@
 #include "ui.h"
 #include "lua_thread.h"
 #include "ui.h"
+#include "console/console_router.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -171,6 +172,8 @@ int main(void)
     paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started");
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
+
+    console_router_init();
 
     k_msleep(100); // is this necessary
 
