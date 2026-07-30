@@ -5,17 +5,20 @@
 #include <zephyr/sys/atomic.h>
 #include <stdio.h>
 #include <string.h>
-#include "console.h"
+#include "shell_commands.h"
 
 #include <zephyr/fs/fs.h>
 #include <ff.h>
-#include "lua/lauxlib.h"
-#include "lua/lua.h"
-#include "ui.h"
-#include "paint.h"
-#include "disk.h"
-#include "lua_thread.h"
-#include "drivers/ST7305.h"
+#include "../lua/lauxlib.h"
+#include "../lua/lua.h"
+#include "../ui.h"
+#include "../paint.h"
+#include "../disk.h"
+#include "../lua_thread.h"
+#include "../drivers/ST7305.h"
+#include "../lua_thread.h"
+#include "../imgdata.h"
+
 
 
 K_MUTEX_DEFINE(page_select_mutex);
@@ -149,8 +152,6 @@ SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu); // todo: conditionally
 
 // LUA
 
-#include "lua_thread.h"
-
 extern lua_State *L;
 
 void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
@@ -243,7 +244,6 @@ void cmd_lua(const struct shell *shell, size_t argc, char **argv)
 SHELL_CMD_REGISTER(lua, NULL, "Execute lua code", cmd_lua);
 
 // PAINT
-#include "imgdata.h"
 
 static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
 {

@@ -405,4 +405,5 @@ int setFPS(int fps)
         sendData(0x80);
         sendData(0xE9);
     }
+    // no return on a functio nthat returns int. silly goose. you need that or it gets upset!
 }

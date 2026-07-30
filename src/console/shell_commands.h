@@ -1,5 +1,5 @@
-#ifndef CONSOLE_H
-#define CONSOLE_H
+#ifndef SHELL_COMMANDS_H
+#define SHELL_COMMANDS_H
 
 #include <zephyr/kernel.h>
 

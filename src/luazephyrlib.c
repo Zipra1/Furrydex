@@ -30,6 +30,7 @@
 #include "ui.h"
 #include "battery.h"
 #include "disk.h"
+#include "console/console_router.h"
 
 ///////////////
 ///  PAINT  ///
@@ -587,13 +588,16 @@ static int lua_shell_receive(lua_State *L)
 {
     int timeout_s = luaL_optinteger(L, 1, 5);
     if (timeout_s < 0)
-    {
         return luaL_error(L, "timeout must be >= 0");
+
+    char msg[128];
+    k_timeout_t timeout = (timeout_s == 0) ? K_FOREVER : K_SECONDS(timeout_s);
+
+    if (k_msgq_get(&lua_serial_msgq, msg, timeout) != 0) {
+        lua_pushnil(L);
+        return 1;
     }
-
-    char *testmessage = "testmessage";
-
-    lua_pushlstring(L, testmessage, strlen(testmessage));
+    lua_pushstring(L, msg);
     return 1;
 }
 

@@ -14,7 +14,7 @@
 #include "imgdata.h"
 #include "fonts/font8.h"
 #include "paint.h"
-#include "console.h"
+#include "console/shell_commands.h"
 #include "usb.h"
 #include "luazephyrlib.h"
 #include "disk.h"
@@ -22,6 +22,7 @@
 #include "ui.h"
 #include "lua_thread.h"
 #include "ui.h"
+#include "console/console_router.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -172,6 +173,8 @@ int main(void)
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 
+    console_router_init();
+
     k_msleep(100); // is this necessary
 
     if (mount_sd_card())
@@ -229,3 +232,24 @@ int main(void)
     }
     return 0;
 }
+
+//      I see your gait tremble at the sight as if to relax a great beast beneath
+//  I see and I think, "We are not doing this" in a desperate plea to God
+//     / |﹊﹊﹊﹊/|     |
+//    /  |      / |     |\﹉\  Now it sits before us, beady glass eyes commanding my every move.
+//   /\  |#####\  |    _|\\  \          And it sees behind my mask; I feel it in me, the spirit of the machine
+//  /  \ |  ︵##\ |   | |_\\ _\           It is trying to kill me
+// /    \|  ︶   \|   |_|  \/o|/
+///      |________|    #|   ﹉
+//      /         /|    |
+//     /         / |    |
+//    /         L| |    |         And with a single command
+//   /         /___|    |   It points to the sky
+//  /         /  |#     |
+// /         /   |#   Do we really worship the same God?
+/*/         /    |      |
+           /     ;      |  
+         .       .      :
+                        ;
+
+   */
