@@ -1,16 +1,38 @@
-// console_router.c
+// Jank is all we have left. There is no room for fear here.
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/shell/shell_uart.h>
-#include <zephyr/sys/iterable_sections.h>
 #include <string.h>
 #include <stdio.h>
+#include "console_router.h"
 
-K_MSGQ_DEFINE(lua_serial_msgq, 128, 8, 4);
+K_MSGQ_DEFINE(lua_serial_msgq, LUA_SERIAL_MSG_SIZE, 8, 4);
 
 #define ROUTER_LINE_MAX 128
 static char router_line[ROUTER_LINE_MAX];
 static size_t router_len = 0;
+
+static const char *const known_commands[] = {
+    "page", "meow", "reboot", "dfu", "lua_lf", "lua_k", "lua",
+    "paint", "display", "info", "ls",
+    "clear", "history", "resize", "help",   // zephyr shell built-ins
+    "kernel", "stats",                      // CONFIG_KERNEL_SHELL / CONFIG_STATS_SHELL
+    "date", "device", "devmem", "rem", "retval", "shell",
+    NULL,
+};
+
+static bool is_registered_command(const char *word)
+{
+    for (int i = 0; known_commands[i] != NULL; i++) {
+        if (strcmp(known_commands[i], word) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+K_THREAD_STACK_DEFINE(console_cmd_stack, 4096);  // Not sure if 4096 is too much.
+static struct k_work_q console_cmd_workq;
 
 struct cmd_work_item {
     struct k_work work;
@@ -22,19 +44,7 @@ static struct cmd_work_item cmd_work;
 static void run_queued_command(struct k_work *work)
 {
     struct cmd_work_item *item = CONTAINER_OF(work, struct cmd_work_item, work);
-    shell_execute_cmd(item->sh, item->line);   // safe here: runs on the system workqueue,
-                                                // after the bypass call has returned
-}
-
-static bool is_registered_command(const char *word)
-{
-    TYPE_SECTION_FOREACH(union shell_cmd_entry, shell_root_cmds, cmd) {
-        const struct shell_static_entry *entry = cmd->entry;
-        if (entry && entry->syntax && strcmp(entry->syntax, word) == 0) {
-            return true;
-        }
-    }
-    return false;
+    shell_execute_cmd(item->sh, item->line);
 }
 
 static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len, void *user_data)
@@ -50,7 +60,7 @@ static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len,
             continue;
         }
 
-        shell_fprintf(sh, SHELL_NORMAL, "%c", c);   // echo typed char back
+        shell_fprintf(sh, SHELL_NORMAL, "%c", c);
 
         if (c == '\n' || c == '\r') {
             if (router_len == 0) continue;
@@ -62,7 +72,8 @@ static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len,
             if (is_registered_command(first_word)) {
                 cmd_work.sh = sh;
                 strncpy(cmd_work.line, router_line, sizeof(cmd_work.line) - 1);
-                k_work_submit(&cmd_work.work);      // deferred, off the bypass callback
+                cmd_work.line[sizeof(cmd_work.line) - 1] = '\0';
+                k_work_submit_to_queue(&console_cmd_workq, &cmd_work.work);
             } else {
                 k_msgq_put(&lua_serial_msgq, router_line, K_NO_WAIT);
             }
@@ -75,12 +86,18 @@ static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len,
 
 void console_router_init(void)
 {
-    const struct shell *sh = shell_backend_uart_get_ptr();  // the CDC-ACM shell instance
+    const struct shell *sh = shell_backend_uart_get_ptr();
 
-    while (!shell_ready(sh)) {
-        k_msleep(10);
+    if (sh == NULL) {
+        printk("console_router_init: no shell UART backend found\n");
+        return;
     }
 
+    k_work_queue_init(&console_cmd_workq);
+    k_work_queue_start(&console_cmd_workq, console_cmd_stack,
+                        K_THREAD_STACK_SIZEOF(console_cmd_stack),
+                        K_PRIO_PREEMPT(10), NULL);
     k_work_init(&cmd_work.work, run_queued_command);
+
     shell_set_bypass(sh, console_router_cb, NULL);
 }
