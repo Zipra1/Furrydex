@@ -7,15 +7,15 @@
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
 #include <nordic/nrf52840_partition.dtsi>
-#include "nrf52840_custom_board_nrf52840-pinctrl.dtsi"
+#include "promicro-pinctrl.dtsi"
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 #include <zephyr/dt-bindings/adc/adc.h>
 #include <zephyr/dt-bindings/adc/nrf-adc.h>
 
 / {
-	model = "Nrf52840 Custom Board";
-	compatible = "nordic,nrf52840-custom-board-nrf52840";
+	model = "ProMicro nRF52840";
+	compatible = "nordic,promicro-nrf52840";
 
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
@@ -134,7 +134,7 @@
         status = "okay";
         usb_config_0: usb_config_0 {
             compatible = "zephyr,usbd-config";
-			
+
             cdc_acm_uart0: cdc_acm_uart0 {
                 compatible = "zephyr,cdc-acm-uart";
             };

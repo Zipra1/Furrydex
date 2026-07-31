@@ -1,0 +1,6 @@
+board:
+  name: promicro
+  full_name: promicro
+  vendor: nordic
+  socs:
+  - name: nrf52840
