@@ -233,8 +233,8 @@ int main(void)
     return 0;
 }
 
-//      I see your gait tremble at the sight as if to relax a great beast beneath
-//  I see and I think, "We are not doing this" in a desperate plea to God
+//      I see your gait tremble at the sight as if to relax a great beast beneath as if to hypnotize it with your step so that it may not emerge and consume us
+//  I see and I think, "We are not doing this" in a desperate plea to God but of course we are and of course it will
 //     / |﹊﹊﹊﹊/|     |
 //    /  |      / |     |\﹉\  Now it sits before us, beady glass eyes commanding my every move.
 //   /\  |#####\  |    _|\\  \          And it sees behind my mask; I feel it in me, the spirit of the machine
