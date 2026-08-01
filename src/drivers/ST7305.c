@@ -18,7 +18,13 @@ paint.c takes care of actual rendering and is display-agnostic.
 #define RST0_NODE DT_ALIAS(rst0)
 #define CS0_NODE DT_ALIAS(cs0)
 #define TE0_NODE DT_ALIAS(te0)
+#ifdef BOARD_PROMICRO
 #define SPI_NODE DT_NODELABEL(spi3)
+#else
+#define SPI_NODE DT_NODELABEL(spi00)
+#endif
+
+
 
 static const struct gpio_dt_spec te = GPIO_DT_SPEC_GET(TE0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);
@@ -28,7 +34,7 @@ static const struct gpio_dt_spec cs = GPIO_DT_SPEC_GET(CS0_NODE, gpios);
 static const struct device *spi_dev = DEVICE_DT_GET(SPI_NODE);
 
 static struct spi_config spi_cfg = {
-    .frequency = 40000000, // 40 MHz
+    .frequency = 32000000, // 32 MHz
     .operation = SPI_OP_MODE_MASTER |
                  SPI_TRANSFER_MSB |
                  SPI_WORD_SET(8) |
