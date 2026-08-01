@@ -7,7 +7,7 @@ static bool sr165_initialized = false;
 
 #define SHLD_NODE DT_ALIAS(hc165shld)
 
-#ifdef BOARD_PROMICRO
+#ifdef CONFIG_BOARD_PROMICRO
 #define SR_NODE DT_NODELABEL(spi2)
 #else
 #define SR_NODE DT_NODELABEL(spi23)

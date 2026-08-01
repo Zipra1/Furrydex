@@ -18,7 +18,7 @@ paint.c takes care of actual rendering and is display-agnostic.
 #define RST0_NODE DT_ALIAS(rst0)
 #define CS0_NODE DT_ALIAS(cs0)
 #define TE0_NODE DT_ALIAS(te0)
-#ifdef BOARD_PROMICRO
+#ifdef CONFIG_BOARD_PROMICRO
 #define SPI_NODE DT_NODELABEL(spi3)
 #else
 #define SPI_NODE DT_NODELABEL(spi00)
@@ -72,7 +72,10 @@ void spi_send_byte(uint8_t byte)
         .count = 1,
     };
 
-    spi_write(spi_dev, &spi_cfg, &tx);
+    int ret = spi_write(spi_dev, &spi_cfg, &tx);
+    if (ret) {
+        printk("display: spi_write failed: %d\n", ret);
+    }
 }
 
 void sendCommand(uint8_t byte)
@@ -117,26 +120,46 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&dc))
     {
+        while(true){
+            printk("Display init failure: dc not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&rst))
     {
+        while(true){
+            printk("Display init failure: rst not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&cs))
     {
+        while(true){
+            printk("Display init failure: cs");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&te))
     {
+        while(true){
+            printk("Display init failure: te not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!device_is_ready(spi_dev))
     {
+        while(true){
+            printk("Display init failure: spi not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
