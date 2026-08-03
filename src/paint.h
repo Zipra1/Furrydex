@@ -4,9 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height);
-void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string);
-int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string);
+void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height, uint8_t *font);
+void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string, uint8_t *font);
+int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string, uint8_t *font);
+void convertFontBitmapSheet(const uint8_t *src_pixels, int src_w, int src_h, int glyph_w, int glyph_h, uint8_t *dst, size_t dst_size);
 void invert(uint8_t *buf, size_t size);
 void invertRegion(unsigned char *buf, int buf_w, int buf_h, int start_x, int start_y, int end_x, int end_y);
 void paintPixel(uint8_t *buf, int buf_w, int buf_h, int x, int y, int colour);

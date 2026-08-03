@@ -30,6 +30,7 @@
 #include "ui.h"
 #include "battery.h"
 #include "disk.h"
+#include "fonts/font8.h"
 #include "console/console_router.h"
 
 ///////////////
@@ -41,6 +42,14 @@ static int lua_canvas_gc(lua_State *L)
     canvas_t *canvas = luaL_checkudata(L, 1, "paint.canvas");
     free(canvas->ptr);
     canvas->ptr = NULL;
+    return 0;
+}
+
+static int lua_font_gc(lua_State *L)
+{
+    font_t *font = luaL_checkudata(L, 1, "paint.font");
+    free(font->ptr);
+    font->ptr = NULL;
     return 0;
 }
 
@@ -203,38 +212,34 @@ static int lua_paint_circle(lua_State *L)
     return 0;
 }
 
-// static int lua_paint_character(lua_State *L)
-// {
-//     size_t len;
-//     const char *character = luaL_checklstring(L, 1, &len);
-//     if (len != 1)
-//     {
-//         return luaL_argerror(L, 1, "Expected single character, use text or text_wrap for a string");
-//     }
-//     int x = luaL_checknumber(L, 2);
-//     int y = luaL_checknumber(L, 3);
-//     canvas_t *canvas = luaL_testudata(L, 4, "paint.canvas");
-
-//     if (should_display())
-//     {
-//         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-//         paintCharacter(character[0], canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, canvas ? canvas->ptr : lua_buffer, x, y);
-//         k_mutex_unlock(&lua_paint_mutex);
-//     }
-//     return 0;
-// }
-
 static int lua_paint_text(lua_State *L)
 {
     int x = luaL_checknumber(L, 1);
     int y = luaL_checknumber(L, 2);
     int kerning = luaL_checknumber(L, 3);
     const char *text = luaL_checkstring(L, 4);
-    canvas_t *canvas = luaL_testudata(L, 5, "paint.canvas");
+    canvas_t *canvas;
+    font_t *font = luaL_testudata(L, 5, "paint.font");
+    ;
+    if (!font)
+    {
+        canvas = luaL_testudata(L, 5, "paint.canvas");
+    }
+    else
+    {
+        canvas = luaL_testudata(L, 6, "paint.canvas");
+    }
     if (canvas || should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        paintText(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, canvas ? x - CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x, y, text);
+        paintText(canvas ? canvas->ptr : lua_buffer,
+                  canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH,
+                  canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                  kerning,
+                  canvas ? x - CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x,
+                  y,
+                  text,
+                  font ? font->ptr : font_8);
         k_mutex_unlock(&lua_paint_mutex);
     }
     return 0;
@@ -247,13 +252,30 @@ static int lua_paint_text_wrap(lua_State *L)
     int kerning = luaL_checknumber(L, 3);
     int width = luaL_checknumber(L, 4);
     const char *text = luaL_checkstring(L, 5);
-    canvas_t *canvas = luaL_testudata(L, 6, "paint.canvas");
-
+    canvas_t *canvas;
+    font_t *font = luaL_testudata(L, 6, "paint.font");
+    ;
+    if (!font)
+    {
+        canvas = luaL_testudata(L, 6, "paint.canvas");
+    }
+    else
+    {
+        canvas = luaL_testudata(L, 7, "paint.canvas");
+    }
     int lines = 0;
     if (canvas || should_display())
     {
         k_mutex_lock(&lua_paint_mutex, K_FOREVER);
-        lines = paintTextWrap(canvas ? canvas->ptr : lua_buffer, canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH, canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT, kerning, canvas ? x - CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x, y, width, text);
+        lines = paintTextWrap(canvas ? canvas->ptr : lua_buffer,
+                              canvas ? canvas->width : CONFIG_FURRYDEX_DISPLAY_WIDTH,
+                              canvas ? canvas->height : CONFIG_FURRYDEX_DISPLAY_HEIGHT,
+                              kerning,
+                              canvas ? x - CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x,
+                              y,
+                              width,
+                              text,
+                              font ? font->ptr : font_8);
         k_mutex_unlock(&lua_paint_mutex);
     }
     lua_pushinteger(L, lines);
@@ -325,6 +347,122 @@ static int lua_paint_blit(lua_State *L)
         lua_gc(L, LUA_GCSTEP, 100);
     }
     return 0;
+}
+
+static int lua_paint_load_font(lua_State *L)
+{
+    const char *path = luaL_checkstring(L, 1);
+
+    struct fs_file_t f;
+    fs_file_t_init(&f);
+    if (fs_open(&f, path, FS_O_READ) != 0)
+    {
+        return luaL_error(L, "could not open %s", path);
+    }
+
+    uint8_t header[54];
+    fs_read(&f, header, 54);
+
+    if (header[0] != 'B' || header[1] != 'M')
+    {
+        fs_close(&f);
+        return luaL_error(L, "not a BMP file");
+    }
+
+    uint32_t pixel_offset = *(uint32_t *)(header + 10);
+    int32_t bmp_w = *(int32_t *)(header + 18);
+    int32_t bmp_h = *(int32_t *)(header + 22);
+    uint16_t bpp = *(uint16_t *)(header + 28);
+    bool flipped = bmp_h > 0;
+    if (bmp_h < 0)
+        bmp_h = -bmp_h;
+
+    if (bpp != 1)
+    {
+        fs_close(&f);
+        return luaL_error(L, "only 1-bit BMP supported (got %d bpp)", bpp);
+    }
+
+    // BMP rows padded to 4-byte boundaries
+    int bmp_stride = ((bmp_w + 31) / 32) * 4;
+
+    bool is_font_sheet = (bmp_w % 19 == 0) && (bmp_h % 5 == 0);
+    int glyph_w = is_font_sheet ? (bmp_w / 19) : bmp_w;
+    int glyph_h = is_font_sheet ? (bmp_h / 5) : bmp_h;
+    int out_stride = (glyph_w + 7) / 8;
+    size_t out_size = (size_t)95 * glyph_h * out_stride;
+
+    uint8_t *bmp_buf = malloc(bmp_stride * bmp_h);
+    font_t *font = lua_newuserdata(L, sizeof(font_t));
+    font->char_width = glyph_w;
+    font->char_height = glyph_h;
+    font->size = out_size;
+    font->ptr = malloc(out_size);
+
+    if (bmp_buf == NULL || font->ptr == NULL)
+    {
+        free(bmp_buf);
+        free(font->ptr);
+        fs_close(&f);
+        return luaL_error(L, "out of memory");
+    }
+
+    luaL_getmetatable(L, "paint.font");
+    lua_setmetatable(L, -2);
+
+    fs_seek(&f, pixel_offset, FS_SEEK_SET);
+    fs_read(&f, bmp_buf, bmp_stride * bmp_h);
+    fs_close(&f);
+
+    memset(font->ptr, 0, out_size);
+    if (is_font_sheet)
+    {
+        uint8_t *sheet_pixels = malloc((size_t)bmp_w * bmp_h);
+        if (sheet_pixels != NULL)
+        {
+            for (int row = 0; row < bmp_h; row++)
+            {
+                int src_row = flipped ? (bmp_h - 1 - row) : row;
+                uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+                for (int col = 0; col < bmp_w; col++)
+                {
+                    int src_bit = 7 - (col % 8);
+                    int pixel = (src_line[col / 8] >> src_bit) & 1;
+                    sheet_pixels[row * bmp_w + col] = (uint8_t)pixel;
+                }
+            }
+
+            convertFontBitmapSheet(sheet_pixels, bmp_w, bmp_h, glyph_w, glyph_h, font->ptr, out_size);
+            free(sheet_pixels);
+        }
+    }
+    else
+    {
+        // Convert from BMP layout (bottom-up, 4-byte padded rows) to tightly packed top-down layout
+        for (int row = 0; row < bmp_h; row++)
+        {
+            int src_row = flipped ? (bmp_h - 1 - row) : row;
+            uint8_t *src_line = bmp_buf + src_row * bmp_stride;
+
+            for (int col = 0; col < bmp_w; col++)
+            {
+                int src_bit = 7 - (col % 8);
+                int pixel = (src_line[col / 8] >> src_bit) & 1;
+
+                int dst_bit = 7 - (col % 8);
+                int dst_byte = row * out_stride + col / 8;
+                if (pixel)
+                    ((uint8_t *)font->ptr)[dst_byte] &= ~(1 << dst_bit);
+                else
+                    ((uint8_t *)font->ptr)[dst_byte] |= (1 << dst_bit);
+            }
+        }
+    }
+
+    free(bmp_buf);
+
+    return 1;
 }
 
 // ⚠ THIS FUNCTION WAS MADE IWTH GENERATIVE AI. CHECK IT THOROUGHLY!!
@@ -478,6 +616,7 @@ static const luaL_Reg paint_funcs[] = {
     {"text_wrap", lua_paint_text_wrap},
     {"blit", lua_paint_blit},
     {"load_bmp", lua_paint_load_bmp},
+    {"load_font", lua_paint_load_font},
     {"new_canvas", lua_paint_new_canvas},
     {"invert_region", lua_paint_invert_region},
     {"hide_top", lua_paint_hide_top},
@@ -491,6 +630,8 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 {
     luaL_newmetatable(L, "paint.canvas");
     lua_pushcfunction(L, lua_canvas_gc);
+    luaL_newmetatable(L, "paint.font");
+    lua_pushcfunction(L, lua_font_gc);
     lua_setfield(L, -2, "__gc");
     lua_pushcfunction(L, lua_canvas_index);
     lua_setfield(L, -2, "__index");
@@ -593,7 +734,8 @@ static int lua_shell_receive(lua_State *L)
     char msg[128];
     k_timeout_t timeout = (timeout_s == 0) ? K_FOREVER : K_SECONDS(timeout_s);
 
-    if (k_msgq_get(&lua_serial_msgq, msg, timeout) != 0) {
+    if (k_msgq_get(&lua_serial_msgq, msg, timeout) != 0)
+    {
         lua_pushnil(L);
         return 1;
     }

@@ -14,6 +14,7 @@
 #include "lua_thread.h"
 #include "luazephyrlib.h"
 #include "imgdata.h"
+#include "fonts/font8.h"
 
 atomic_t selected_page = ATOMIC_INIT(0);
 
@@ -173,7 +174,7 @@ void draw_ui()
         update_tray_icons();
         draw_battery_indicator();
         paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_shown_lua_threads + 1, atomic_get(&visible_slot_index));
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 4, 12, "Placeholder");
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 4, 12, "Placeholder", font_8);
     }
     else
     {

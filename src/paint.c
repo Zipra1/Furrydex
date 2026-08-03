@@ -14,8 +14,55 @@ static inline uint8_t reverse_bits(uint8_t b)
     b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
     return b;
 }
+// ⚠ convertFontBitmapSheet is AI generated. Review thoroughly!
+void convertFontBitmapSheet(const uint8_t *src_pixels, int src_w, int src_h, int glyph_w, int glyph_h, uint8_t *dst, size_t dst_size)
+{
+    const int glyph_count = 95;
+    const int glyphs_per_row = 19;
+    const int bytes_per_row = (glyph_w + 7) / 8;
+    const size_t expected_size = (size_t)glyph_count * glyph_h * bytes_per_row;
 
-void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height)
+    if (src_pixels == NULL || dst == NULL || glyph_w <= 0 || glyph_h <= 0 ||
+        src_w <= 0 || src_h <= 0 || dst_size < expected_size)
+    {
+        return;
+    }
+
+    memset(dst, 0, dst_size);
+
+    for (int glyph_index = 0; glyph_index < glyph_count; glyph_index++)
+    {
+        int cell_x = (glyph_index % glyphs_per_row) * glyph_w;
+        int cell_y = (glyph_index / glyphs_per_row) * glyph_h;
+        int glyph_offset = glyph_index * glyph_h * bytes_per_row;
+
+        for (int row = 0; row < glyph_h; row++)
+        {
+            int src_row = cell_y + row;
+            int dst_row_offset = glyph_offset + row * bytes_per_row;
+
+            for (int col = 0; col < glyph_w; col++)
+            {
+                int src_col = cell_x + col;
+                int src_index = src_row * src_w + src_col;
+                int pixel = src_pixels[src_index] != 0;
+                int dst_bit = 7 - (col % 8);
+                int dst_byte = dst_row_offset + (col / 8);
+
+                if (pixel)
+                {
+                    dst[dst_byte] &= ~(1 << dst_bit);
+                }
+                else
+                {
+                    dst[dst_byte] |= (1 << dst_bit);
+                }
+            }
+        }
+    }
+}
+
+void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height, uint8_t *font)
 {
     int fontHeight = 8;
     int charStart = ((int)character - 32) * fontHeight;
@@ -27,7 +74,7 @@ void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int tran
         if (dst_y < 0 || dst_y >= buf_h)
             continue;
 
-        unsigned char fontByte = ~font_8[charStart + i];
+        unsigned char fontByte = ~font[charStart + i];
 
         for (int col = 0; col < 8; col++)
         {
@@ -47,7 +94,7 @@ void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int tran
     }
 }
 
-void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string)
+void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string, uint8_t *font)
 {
     int character_width = 5;
     int line_height = 8;
@@ -64,12 +111,12 @@ void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_wi
             current_y += line_height;
             continue;
         }
-        paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y);
+        paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y, font);
         current_x += (character_width + kerning);
     }
 }
 
-int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string)
+int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string, uint8_t *font)
 {
     int character_width = 5;
     int line_height = 8;
@@ -111,7 +158,7 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
 
         for (int j = 0; j < word_len; j++)
         {
-            paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y);
+            paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y, font);
             current_x += (character_width + kerning);
             i++;
         }
