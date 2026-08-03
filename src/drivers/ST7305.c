@@ -18,7 +18,13 @@ paint.c takes care of actual rendering and is display-agnostic.
 #define RST0_NODE DT_ALIAS(rst0)
 #define CS0_NODE DT_ALIAS(cs0)
 #define TE0_NODE DT_ALIAS(te0)
+#ifdef CONFIG_BOARD_PROMICRO
 #define SPI_NODE DT_NODELABEL(spi3)
+#else
+#define SPI_NODE DT_NODELABEL(spi00)
+#endif
+
+
 
 static const struct gpio_dt_spec te = GPIO_DT_SPEC_GET(TE0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);
@@ -28,7 +34,7 @@ static const struct gpio_dt_spec cs = GPIO_DT_SPEC_GET(CS0_NODE, gpios);
 static const struct device *spi_dev = DEVICE_DT_GET(SPI_NODE);
 
 static struct spi_config spi_cfg = {
-    .frequency = 40000000, // 40 MHz
+    .frequency = 32000000, // 32 MHz
     .operation = SPI_OP_MODE_MASTER |
                  SPI_TRANSFER_MSB |
                  SPI_WORD_SET(8) |
@@ -66,7 +72,10 @@ void spi_send_byte(uint8_t byte)
         .count = 1,
     };
 
-    spi_write(spi_dev, &spi_cfg, &tx);
+    int ret = spi_write(spi_dev, &spi_cfg, &tx);
+    if (ret) {
+        printk("display: spi_write failed: %d\n", ret);
+    }
 }
 
 void sendCommand(uint8_t byte)
@@ -111,26 +120,46 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&dc))
     {
+        while(true){
+            printk("Display init failure: dc not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&rst))
     {
+        while(true){
+            printk("Display init failure: rst not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&cs))
     {
+        while(true){
+            printk("Display init failure: cs");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!gpio_is_ready_dt(&te))
     {
+        while(true){
+            printk("Display init failure: te not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 
     if (!device_is_ready(spi_dev))
     {
+        while(true){
+            printk("Display init failure: spi not ready");
+            k_msleep(1000);
+        }
         return 0;
     }
 

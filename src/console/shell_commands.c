@@ -136,19 +136,19 @@ static int cmd_reboot(const struct shell *sh, size_t argc, char **argv)
 
 SHELL_CMD_REGISTER(reboot, NULL, "Reboot device", cmd_reboot);
 
+#ifdef CONFIG_BOARD_PROMICRO
 static int cmd_dfu(const struct shell *sh, size_t argc, char **argv)
 {
-#ifdef BOARD_PROMICRO
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     shell_print(sh, "Rebooting with DFU now");
     NRF_POWER->GPREGRET = 0x57;
     sys_reboot(SYS_REBOOT_WARM);
     return 0;
-#endif
 }
 
-SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu); // todo: conditionally compile this for different bootloaders
+SHELL_CMD_REGISTER(dfu, NULL, "Enter DFU mode", cmd_dfu);
+#endif
 
 // LUA
 

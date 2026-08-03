@@ -17,4 +17,15 @@ typedef struct
     };
 } canvas_t;
 
+typedef struct
+{
+    int char_width;
+    int char_height;
+    struct
+    {
+        size_t size;
+        void *ptr;
+    };
+} font_t;
+
 #endif

@@ -17,18 +17,18 @@ Currently, this is very early in development. It will be a *while* until its usa
 - [ ] - SD card passthrough, for easy modification/programming and profile making. (Kinda implemented)
 
 ## Hardware
-The nRF52840 is currently being used for prototyping, but the final version(s) will probably be using the nRF54LM20A since it's better in every way (just not out yet)
+The nRF54LM20A is preferred, but the nRF52840 will have support as long as I dont reach its limitations.
+External radio chips are being considered to expand functionality if there is space inside.
 
 ## Can I buy it?
 Not yet! But I do plan to sell these eventually at https://www.macroplastics.ca
 The price target is 50USD or lower.
 
 ## Can I make it?
-It's not nearly complete yet, but if you want to help development then yes!
+It's not complete yet, but if you want to help development then yes!
 
 Reccomended IDE for this is VSCode, since that's the officially used one for the nRF series.
 
 You'll need the nRF Connect extension, opening this repo with that and opening the extension tab should allow you to add a build configuration.
 
-The only board present at the moment is the ProMicro nRF52840: you can get these for very cheap on aliexpress. But get a few, since DOA's are common for such cheap boards. Check the device tree for pin assignments.
-> No i dont have a devkit ( •̀ ω •́ )↗
+The nRF54LM20DK is the preferred hardware right now, but the nRF52840 ProMicro will also work if you are on a budget of like $10. Check the device tree for pin assignments, I have yet to make a schematic.

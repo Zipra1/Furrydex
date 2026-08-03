@@ -6,7 +6,12 @@ static const struct device *spi_dev;
 static bool sr165_initialized = false;
 
 #define SHLD_NODE DT_ALIAS(hc165shld)
+
+#ifdef CONFIG_BOARD_PROMICRO
 #define SR_NODE DT_NODELABEL(spi2)
+#else
+#define SR_NODE DT_NODELABEL(spi23)
+#endif
 
 static const struct gpio_dt_spec hc165shld = GPIO_DT_SPEC_GET(SHLD_NODE, gpios);
 static const struct device *spi_dev = DEVICE_DT_GET(SR_NODE);
@@ -28,7 +33,7 @@ static int sr165_init(void)
     if (sr165_initialized)
         return 0;
 
-    spi_dev = DEVICE_DT_GET(DT_NODELABEL(spi2));
+    spi_dev = DEVICE_DT_GET(SR_NODE);
 
     if (!device_is_ready(spi_dev))
     {

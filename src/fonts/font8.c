@@ -37,11 +37,12 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "font8.h"
+#include <stdint.h>
 
 // 
 //  Font data for Courier New 12pt // todo: make a Furrydex font!
 // 
-unsigned char font_8[] = {
+uint8_t font_8[] = {
 	// @0 ' ' (5 pixels wide)
 	0x00, //      
 	0x00, //      
