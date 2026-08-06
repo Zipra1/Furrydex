@@ -19,39 +19,9 @@
 #include "../lua_thread.h"
 #include "../imgdata.h"
 
+// Adding commands will require registering them in console_router.c aswell
+
 K_MUTEX_DEFINE(page_select_mutex);
-
-// const int32_t blink_max_ms = 2000;
-// const int32_t blink_min_ms = 100;
-// int32_t blink_sleep_ms = 500;
-
-// static int cmd_blink_inc(const struct shell *sh, size_t argc, char **argv)
-// {
-//     ARG_UNUSED(argc);
-//     ARG_UNUSED(argv);
-//     k_mutex_lock(&page_select_mutex, K_FOREVER);
-//     blink_sleep_ms = MIN(blink_sleep_ms + 100, blink_max_ms);
-//     k_mutex_unlock(&page_select_mutex);
-//     shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
-//     return 0;
-// }
-
-// static int cmd_blink_dec(const struct shell *sh, size_t argc, char **argv)
-// {
-//     ARG_UNUSED(argc);
-//     ARG_UNUSED(argv);
-//     k_mutex_lock(&page_select_mutex, K_FOREVER);
-//     blink_sleep_ms = MAX(blink_sleep_ms - 100, blink_min_ms);
-//     k_mutex_unlock(&page_select_mutex);
-//     shell_print(sh, "Blink sleep: %d ms", blink_sleep_ms);
-//     return 0;
-// }
-
-// SHELL_STATIC_SUBCMD_SET_CREATE(sub_blink,
-//                                SHELL_CMD(inc, NULL, "Increase blink speed by 100ms", cmd_blink_inc),
-//                                SHELL_CMD(dec, NULL, "Decrease blink speed by 100ms", cmd_blink_dec),
-//                                SHELL_SUBCMD_SET_END);
-// SHELL_CMD_REGISTER(blink, &sub_blink, "Blink speed controls", NULL);
 
 static int cmd_page_left(const struct shell *sh, size_t argc, char **argv)
 {
@@ -263,25 +233,9 @@ static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
-static int cmd_paint_bubbles(const struct shell *sh, size_t argc, char **argv)
-{
-    if (argc != 3)
-    {
-        shell_error(sh, "Usage: paint bubbles <num> <selected>");
-        return -EINVAL;
-    }
-
-    int num_bubbles = atoi(argv[1]);
-    int selected_bubble = atoi(argv[2]);
-
-    paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_bubbles, selected_bubble);
-
-    return 0;
-}
-
 SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_CMD_ARG(circle, NULL, "Paint a filled circle <x> <y> <r> <c>", cmd_paint_circle, 5, 0),
-                               SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
+                               //SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
 
@@ -323,6 +277,28 @@ static int cmd_display(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(display, NULL, "Send raw display commands and data bytes", cmd_display);
+
+static int cmd_hpm(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    shell_print(sh, "ST7305 SH: Entering HPM");
+    enterHPM();
+    return 0;
+}
+
+SHELL_CMD_REGISTER(hpm, NULL, "Set display to high power mode", cmd_hpm);
+
+static int cmd_lpm(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    shell_print(sh, "ST7305 SH: Entering LPM");
+    enterLPM();
+    return 0;
+}
+
+SHELL_CMD_REGISTER(lpm, NULL, "Set display to low power mode", cmd_lpm);
 
 // INFO
 

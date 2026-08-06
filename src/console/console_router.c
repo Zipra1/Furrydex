@@ -35,6 +35,8 @@ static const char *const known_commands[] = {
     "rem",
     "retval",
     "shell",
+    "lpm",
+    "hpm",
     NULL,
 };
 

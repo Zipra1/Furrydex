@@ -24,8 +24,6 @@ paint.c takes care of actual rendering and is display-agnostic.
 #define SPI_NODE DT_NODELABEL(spi00)
 #endif
 
-
-
 static const struct gpio_dt_spec te = GPIO_DT_SPEC_GET(TE0_NODE, gpios);
 static const struct gpio_dt_spec dc = GPIO_DT_SPEC_GET(DC0_NODE, gpios);
 static const struct gpio_dt_spec rst = GPIO_DT_SPEC_GET(RST0_NODE, gpios);
@@ -73,7 +71,8 @@ void spi_send_byte(uint8_t byte)
     };
 
     int ret = spi_write(spi_dev, &spi_cfg, &tx);
-    if (ret) {
+    if (ret)
+    {
         printk("display: spi_write failed: %d\n", ret);
     }
 }
@@ -120,7 +119,8 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&dc))
     {
-        while(true){
+        while (true)
+        {
             printk("Display init failure: dc not ready");
             k_msleep(1000);
         }
@@ -129,7 +129,8 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&rst))
     {
-        while(true){
+        while (true)
+        {
             printk("Display init failure: rst not ready");
             k_msleep(1000);
         }
@@ -138,7 +139,8 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&cs))
     {
-        while(true){
+        while (true)
+        {
             printk("Display init failure: cs");
             k_msleep(1000);
         }
@@ -147,7 +149,8 @@ int initDisplay()
 
     if (!gpio_is_ready_dt(&te))
     {
-        while(true){
+        while (true)
+        {
             printk("Display init failure: te not ready");
             k_msleep(1000);
         }
@@ -156,7 +159,8 @@ int initDisplay()
 
     if (!device_is_ready(spi_dev))
     {
-        while(true){
+        while (true)
+        {
             printk("Display init failure: spi not ready");
             k_msleep(1000);
         }
@@ -241,7 +245,7 @@ int initDisplay()
     //    sendData(0x14);//14  0C   7
 
     sendCommand(0XB2); // Frame Rate Control
-    sendData(0X05);    // HPM=16hz ; LPM=8hz
+    sendData(0X02);    // HPM=16hz ; LPM=8hz
     // 0x15 for High Frame Rate mode
     // This should be live configurable. Find out what's going on here
 
@@ -286,9 +290,13 @@ int initDisplay()
 
     sendCommand(0x36); // Memory Data Access Control
     if (USE_HORIZONTAL == 0)
+    {
         sendData(0x48);
+    }
     else if (USE_HORIZONTAL == 1)
+    {
         sendData(0x4C);
+    }
 
     sendCommand(0x3A); // Data Format Select 4 write for 24 bit
     sendData(0x11);
@@ -367,31 +375,86 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 
 void enterLPM()
 {
+    printk("ST7305: entering lpm");
     sendCommand(ST7305_CMD_HPM);
-    // voltages are being set wrong
-    // these should have data for lpm/hpm i think
-    // sendCommand(0xC1);
-    // sendCommand(0xC2);
-    // sendCommand(0xC4);
-    // sendCommand(0xC5);
-    // sendCommand(0xC9);
+    // Got these values for C1,C2,C4,C5,C9 from the ST7305 V1.2 datasheet, since it said in its initialization code that it should be 1Hz. so thought they were correct for LPM, but seems not to have resolved the issue.
+    sendCommand(0xC1); // VSH Setting
+    sendData(0X41);    //
+    sendData(0X41);
+    sendData(0X41);
+    sendData(0X41);
+
+    sendCommand(0xC2); // VSL Setting VSL=0
+    sendData(0x32);
+    sendData(0x32);
+    sendData(0x32);
+    sendData(0x32);
+
+    sendCommand(0XC4); // VSHN Setting
+    sendData(0X46);
+    sendData(0X46);
+    sendData(0X46);
+    sendData(0X46);
+
+    sendCommand(0XC5); // VSLN Setting
+    sendData(0X46);
+    sendData(0X46);
+    sendData(0X46);
+    sendData(0X46);
+
+    sendCommand(0XC9); // Source Voltage Select
+    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
+
     k_msleep(20);
+
     sendCommand(ST7305_CMD_LPM);
+
     k_msleep(100);
 }
 
 void enterHPM()
 {
+    printk("ST7305: entering hpm");
     sendCommand(0x39);
     sendCommand(0x38);
+
     k_msleep(300);
+
+    sendCommand(0xC1); // VSH Setting
+    sendData(0X41);    //
+    sendData(0X41);
+    sendData(0X41);
+    sendData(0X41);
+
+    sendCommand(0xC2); // VSL Setting VSL=0
+    sendData(0x19);
+    sendData(0x19);
+    sendData(0x19);
+    sendData(0x19);
+
+    sendCommand(0XC4); // VSHN Setting
+    sendData(0X41);    // VSHN1=-3.8V
+    sendData(0X41);    // VSHN2=-3.8V
+    sendData(0X41);    // VSHN3=-3.8V
+    sendData(0X41);    // VSHN4=-3.8V
+
+    sendCommand(0XC5); // VSLN Setting
+    sendData(0X19);    // VSLN1=0.5V
+    sendData(0X19);    // VSLN2=0.5V
+    sendData(0X19);    // VSLN3=0.5V
+    sendData(0X19);    // VSLN4=0.5V
+
+    sendCommand(0XC9); // Source Voltage Select
+    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
+
+    k_msleep(20);
 }
 
 int setFPS(int fps)
 {
     if (fps == 1600) // 16Hz
     {
-        sendCommand(ST7305_CMD_HPM);
+        enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
         sendData(0x00);
@@ -402,7 +465,7 @@ int setFPS(int fps)
     }
     if (fps == 2550) // 25.5Hz
     {
-        sendCommand(ST7305_CMD_HPM);
+        enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
         sendData(0x00);
@@ -413,7 +476,7 @@ int setFPS(int fps)
     }
     if (fps == 3200) // 32Hz
     {
-        sendCommand(ST7305_CMD_HPM);
+        enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
         sendData(0x16);
@@ -424,7 +487,7 @@ int setFPS(int fps)
     }
     if (fps == 5100) // 51Hz
     {
-        sendCommand(ST7305_CMD_HPM);
+        enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
         sendData(0x16);

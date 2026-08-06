@@ -24,5 +24,7 @@ void waitForTE(void);
  * @return 0 if successful, otherwise negative error code.
  */
 int setFPS(int fps);
+void enterHPM();
+void enterLPM();
 
 #endif
