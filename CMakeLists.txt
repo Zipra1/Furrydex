@@ -57,4 +57,5 @@ target_sources(app PRIVATE
     src/drivers/74HC165.c
     src/drivers/ST7305.c
     src/stubs/strlcpy.c
+    src/radio/radio.c
 )
