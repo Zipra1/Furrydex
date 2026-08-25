@@ -23,6 +23,7 @@
 #include "lua_thread.h"
 #include "ui.h"
 #include "console/console_router.h"
+#include "radio/radio.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -219,6 +220,33 @@ int main(void)
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
     }
 
+    if (ble_core_init())
+    {
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nFailed to initialize BLE", font_8);
+        convertBuffer(main_buffer, output_buffer);
+        Display(25, 0, 36, 125, output_buffer);
+    }
+    else
+    {
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE", font_8);
+        convertBuffer(main_buffer, output_buffer);
+        Display(25, 0, 36, 125, output_buffer);
+        ret = streetpass_adv_start();
+        if (ret == 0)
+        {
+            paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE\nStarted advertizing", font_8);
+            convertBuffer(main_buffer, output_buffer);
+            Display(25, 0, 36, 125, output_buffer);
+        }
+        else
+        {
+            paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE\nFailed to advertize", font_8);
+            printk("Failed to start advertizing: %i", ret);
+            convertBuffer(main_buffer, output_buffer);
+            Display(25, 0, 36, 125, output_buffer);
+        }
+    }
+
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
 
     while (true)
@@ -248,7 +276,7 @@ int main(void)
 //  /         /  |#     |
 // /         /   |#   Do we really worship the same God?
 /*/         /    |      |
-           /     ;      |  
+           /     ;      |
          .       .      :
                         ;
 
