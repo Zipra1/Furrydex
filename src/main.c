@@ -248,7 +248,7 @@ int main(void)
     }
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
-
+    ble_scan_start();
     while (true)
     {
         draw_ui();
@@ -261,7 +261,7 @@ int main(void)
     return 0;
 }
 
-//      I see your gait tremble at the sight as if to relax a great beast beneath as if to hypnotize it with your step so that it may not emerge and consume us
+//      I see your gait tremble at the sight as if to relax a great beast beneath, as if to hypnotize it with your step so that it may not emerge and consume us
 //  I see and I think, "We are not doing this" in a desperate plea to God but of course we are and of course it will
 //     / |﹊﹊﹊﹊/|     |
 //    /  |      / |     |\﹉\  Now it sits before us, beady glass eyes commanding my every move.

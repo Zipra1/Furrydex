@@ -129,7 +129,7 @@ endmenu
 menu "Lua options"
 config LUA_HEAP_SIZE
 	int "How much memory to be allocated to Lua"
-	default 118784
+	default 106496
 	help
 	  How much memory to be allocated to Lua's heap
 

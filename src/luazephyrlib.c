@@ -765,6 +765,39 @@ int lua_sleep_ms(lua_State *L)
     return 0;
 }
 
+/////////////////
+/// BLUETOOTH ///
+/////////////////
+#include "radio/radio.h"
+
+int lua_ble_event_get(lua_State *L)
+{
+    struct ble_scan_event pulled_event[BLE_MAX_AD_LEN];
+    int ret = k_msgq_get(&ble_scan_msgq, &pulled_event, K_NO_WAIT);
+    if (ret == 0)
+    {
+        lua_pushboolean(L, true);
+        lua_pushinteger(L, pulled_event->rssi);
+        lua_pushlstring(L, pulled_event->ad_data,pulled_event->ad_len);
+        return 3;
+    }
+    lua_pushboolean(L, false);
+    lua_pushinteger(L, 0);
+    lua_pushstring(L, "");
+    return 3;
+}
+
+static const luaL_Reg ble_funcs[] = {
+    {"scan", lua_ble_event_get},
+    {NULL, NULL},
+};
+
+LUAMOD_API int luaopen_ble(lua_State *L)
+{
+    luaL_newlib(L, ble_funcs);
+    return 1;
+}
+
 //////////////
 /// BUFFER ///
 //////////////
