@@ -27,6 +27,8 @@ typedef struct {
     bool hide_bottom;
     bool in_tray;
     uint8_t *icon;
+    int ble_fifo_depth;
+    bool ble_enabled;
 } lua_thread_slot_t;
 
 #define LUA_INPUT_NONE 0

@@ -6,6 +6,7 @@
 
 #include "lua_thread.h"
 #include "ui.h"
+#include "radio/radio.h"
 
 /*
 ⚠ This file was produced with generative ai.
@@ -83,6 +84,8 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     slot->hide_top = false;
     slot->hide_bottom = false;
     slot->in_tray = false;
+    slot->ble_enabled = false;
+    slot->ble_fifo_depth = BLE_FIFO_LENGTH;
 }
 
 int lua_thread_update_priorities(int selected_slot)

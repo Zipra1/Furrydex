@@ -3,6 +3,7 @@
 #include <zephyr/bluetooth/gap.h>
 #include <string.h>
 #include "radio.h"
+#include "../lua_thread.h"
 
 // initialization //
 
@@ -49,6 +50,81 @@ static const struct bt_le_adv_param adv_param = {
     .interval_max = BT_GAP_ADV_SLOW_INT_MAX,
 };
 
+static int ble_fifo_in;
+static int ble_fifo_out;
+static int ble_fifo_count;
+static struct k_spinlock ble_fifo_lock;
+struct ble_scan_event ble_fifo[BLE_FIFO_LENGTH] = {};
+
+int ble_fifo_peek(struct ble_scan_event *peeked_item, int depth)
+{
+    if (peeked_item == NULL || depth < 0)
+    {
+        return -1;
+    }
+
+    k_spinlock_key_t key = k_spin_lock(&ble_fifo_lock);
+    if (depth >= ble_fifo_count)
+    {
+        k_spin_unlock(&ble_fifo_lock, key);
+        return -1;
+    }
+
+    int index = (ble_fifo_out + depth) % BLE_FIFO_LENGTH;
+    *peeked_item = ble_fifo[index];
+    k_spin_unlock(&ble_fifo_lock, key);
+    return 0;
+}
+
+int ble_fifo_put(struct ble_scan_event new_item)
+{
+    k_spinlock_key_t key = k_spin_lock(&ble_fifo_lock);
+    if (ble_fifo_count == BLE_FIFO_LENGTH)
+    {
+        k_spin_unlock(&ble_fifo_lock, key);
+        /* instead of doing nothing, this should
+           push in and delete the oldest item */
+        return -1;
+    }
+
+    ble_fifo[ble_fifo_in] = new_item;
+    ble_fifo_in = (ble_fifo_in + 1) % BLE_FIFO_LENGTH;
+    ble_fifo_count++;
+
+    k_spin_unlock(&ble_fifo_lock, key);
+
+    for (int i = 0; i < BLE_FIFO_LENGTH; i++)
+    {
+        if (lua_slots[i].ble_fifo_depth <= 0)
+        {
+            lua_slots[i].ble_fifo_depth++;
+        }
+    }
+
+    return 0;
+}
+
+int ble_fifo_get(struct ble_scan_event *pulled_item)
+{
+    if (pulled_item == NULL)
+    {
+        return -1;
+    }
+
+    k_spinlock_key_t key = k_spin_lock(&ble_fifo_lock);
+    if (ble_fifo_count == 0)
+    {
+        k_spin_unlock(&ble_fifo_lock, key);
+        return -1;
+    }
+
+    *pulled_item = ble_fifo[ble_fifo_out];
+    ble_fifo_out = (ble_fifo_out + 1) % BLE_FIFO_LENGTH;
+    ble_fifo_count--;
+    k_spin_unlock(&ble_fifo_lock, key);
+    return 0;
+}
+
 int streetpass_adv_start(void)
 {
     int err;
@@ -89,8 +165,7 @@ void streetpass_adv_stop(void)
 }
 
 K_MSGQ_DEFINE(ble_scan_msgq, sizeof(struct ble_scan_event), 8, 1);
-struct ble_scan_event ble_scan_garbage[BLE_MAX_AD_LEN];
-// garbage variable is bad, is there any way to just remove a message off the top of the queue?
+struct ble_scan_event ble_scan_garbage; // a temporary solution is often the most permament, this one best be the exception!
 
 static void scan_recv(const struct bt_le_scan_recv_info *info, struct net_buf_simple *buf)
 {
@@ -105,12 +180,12 @@ static void scan_recv(const struct bt_le_scan_recv_info *info, struct net_buf_si
     {
         printk("ble: advertizement truncated (%u > %u bytes)\n", buf->len, BLE_MAX_AD_LEN);
     }
-try_msgq_put:
-    if (k_msgq_put(&ble_scan_msgq, &ev, K_NO_WAIT) != 0)
+try_put:
+    if (ble_fifo_put(ev) != 0)
     {
-        // printk("ble: scan msgq full, dropping top event to make room\n");
-        k_msgq_get(&ble_scan_msgq, &ble_scan_garbage, K_NO_WAIT);
-        goto try_msgq_put;
+        printk("ble: scan fifo full, dropping top event to make room\n");
+        ble_fifo_get(&ble_scan_garbage);
+        goto try_put;
     }
 }
 
@@ -118,12 +193,13 @@ static struct bt_le_scan_cb ble_scan_callbacks = {
     .recv = scan_recv,
 };
 
-int ble_scan_start(void) {
+int ble_scan_start(void)
+{
     struct bt_le_scan_param scan_param = {
-        .type     = BT_LE_SCAN_TYPE_PASSIVE,
-        .options  = BT_LE_SCAN_OPT_CODED | BT_LE_SCAN_OPT_NO_1M,
+        .type = BT_LE_SCAN_TYPE_PASSIVE,
+        .options = BT_LE_SCAN_OPT_CODED | BT_LE_SCAN_OPT_NO_1M,
         .interval = BT_GAP_SCAN_FAST_INTERVAL,
-        .window   = BT_GAP_SCAN_FAST_WINDOW,
+        .window = BT_GAP_SCAN_FAST_WINDOW,
     };
     bt_le_scan_cb_register(&ble_scan_callbacks);
     return bt_le_scan_start(&scan_param, NULL);

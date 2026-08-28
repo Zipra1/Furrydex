@@ -768,17 +768,18 @@ int lua_sleep_ms(lua_State *L)
 /////////////////
 /// BLUETOOTH ///
 /////////////////
+
 #include "radio/radio.h"
 
 int lua_ble_event_get(lua_State *L)
 {
-    struct ble_scan_event pulled_event[BLE_MAX_AD_LEN];
-    int ret = k_msgq_get(&ble_scan_msgq, &pulled_event, K_NO_WAIT);
+    struct ble_scan_event pulled_event;
+    int ret = ble_fifo_get(&pulled_event);
     if (ret == 0)
     {
         lua_pushboolean(L, true);
-        lua_pushinteger(L, pulled_event->rssi);
-        lua_pushlstring(L, pulled_event->ad_data,pulled_event->ad_len);
+        lua_pushinteger(L, pulled_event.rssi);
+        lua_pushlstring(L, pulled_event.ad_data,pulled_event.ad_len);
         return 3;
     }
     lua_pushboolean(L, false);
@@ -1262,8 +1263,6 @@ static int lua_fs_mkdir(lua_State *L)
 ////‾‾‾‾|‾‾‾‾ ‾‾‾‾‾|‾‾‾‾‾‾‾‾|‾‾‾‾   ‾ |   ‾
 ////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾‾ ‾  ‾               
 ////                  "I2C" -fui
-
-
 
 static int lua_i2c_configure(lua_State *L)
 {
