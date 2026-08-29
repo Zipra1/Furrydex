@@ -774,9 +774,8 @@ int lua_sleep_ms(lua_State *L)
 int lua_ble_event_get(lua_State *L)
 {
     struct ble_scan_event pulled_event = {0};
-    bool success = false;
     int own_slot = get_current_lua_slot();
-    
+
     if (lua_slots[own_slot].ble_enabled == false)
     {
         lua_slots[own_slot].ble_fifo_depth = -1;
@@ -786,14 +785,14 @@ int lua_ble_event_get(lua_State *L)
     int ret = -1;
     if (lua_slots[own_slot].ble_fifo_depth >= 0)
     {
-        ret = ble_fifo_peek(&pulled_event, lua_slots[own_slot].ble_fifo_depth);
+        ret = ble_fifo_peek(&pulled_event, atomic_get(lua_slots[own_slot].ble_fifo_depth));
     }
     if (ret == 0)
     {
         lua_slots[own_slot].ble_fifo_depth--;
     }
 
-    lua_pushboolean(L, (ret == 0) ?  true : false);
+    lua_pushboolean(L, (ret == 0) ? true : false);
     lua_pushinteger(L, pulled_event.rssi);
     lua_pushlstring(L, pulled_event.ad_data, pulled_event.ad_len);
     return 3;
