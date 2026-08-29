@@ -790,14 +790,10 @@ int lua_ble_event_get(lua_State *L)
     }
     if (ret == 0)
     {
-        success = true;
-    }
-    if (success)
-    {
         lua_slots[own_slot].ble_fifo_depth--;
     }
 
-    lua_pushboolean(L, success);
+    lua_pushboolean(L, (ret == 0) ?  true : false);
     lua_pushinteger(L, pulled_event.rssi);
     lua_pushlstring(L, pulled_event.ad_data, pulled_event.ad_len);
     return 3;
