@@ -149,7 +149,7 @@ int streetpass_adv_start(void)
         return err;
     }
 
-    printk("Streetpass advertising started (Coded PHY)\n");
+    printk("Streetpass advertizing started (Coded PHY)\n");
     return 0;
 }
 
@@ -164,7 +164,6 @@ void streetpass_adv_stop(void)
 }
 
 K_MSGQ_DEFINE(ble_scan_msgq, sizeof(struct ble_scan_event), 8, 1);
-struct ble_scan_event ble_scan_garbage; // a temporary solution is often the most permament, this one best be the exception!
 
 static void scan_recv(const struct bt_le_scan_recv_info *info, struct net_buf_simple *buf)
 {
