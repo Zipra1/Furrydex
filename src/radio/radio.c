@@ -56,6 +56,33 @@ static int ble_fifo_count;
 static struct k_spinlock ble_fifo_lock;
 struct ble_scan_event ble_fifo[BLE_FIFO_LENGTH] = {};
 
+void ble_fifo_put(struct ble_scan_event new_item)
+{
+    k_spinlock_key_t key = k_spin_lock(&ble_fifo_lock);
+    if (ble_fifo_count == BLE_FIFO_LENGTH)
+    {
+        ble_fifo[ble_fifo_out] = new_item;
+        ble_fifo_out = (ble_fifo_out + 1) % BLE_FIFO_LENGTH;
+        ble_fifo_in = (ble_fifo_in + 1) % BLE_FIFO_LENGTH;
+    }
+    else
+    {
+        ble_fifo[ble_fifo_in] = new_item;
+        ble_fifo_in = (ble_fifo_in + 1) % BLE_FIFO_LENGTH;
+        ble_fifo_count++;
+    }
+    k_spin_unlock(&ble_fifo_lock, key);
+    for (int i = 0; i < BLE_FIFO_LENGTH; i++)
+    {
+        if (atomic_get(&lua_slots[i].ble_fifo_depth) < BLE_FIFO_LENGTH - 1)
+        {
+            atomic_inc(&lua_slots[i].ble_fifo_depth);
+        }
+    }
+
+    return;
+}
+
 int ble_fifo_peek(struct ble_scan_event *peeked_item, int depth)
 {
     if (peeked_item == NULL || depth < 0)
@@ -73,34 +100,6 @@ int ble_fifo_peek(struct ble_scan_event *peeked_item, int depth)
     int index = (ble_fifo_out + depth) % BLE_FIFO_LENGTH;
     *peeked_item = ble_fifo[index];
     k_spin_unlock(&ble_fifo_lock, key);
-    return 0;
-}
-
-int ble_fifo_put(struct ble_scan_event new_item)
-{
-    k_spinlock_key_t key = k_spin_lock(&ble_fifo_lock);
-    if (ble_fifo_count == BLE_FIFO_LENGTH)
-    {
-        k_spin_unlock(&ble_fifo_lock, key);
-        /* instead of doing nothing, this should
-           push in and delete the oldest item */
-        return -1;
-    }
-
-    ble_fifo[ble_fifo_in] = new_item;
-    ble_fifo_in = (ble_fifo_in + 1) % BLE_FIFO_LENGTH;
-    ble_fifo_count++;
-
-    k_spin_unlock(&ble_fifo_lock, key);
-
-    for (int i = 0; i < BLE_FIFO_LENGTH; i++)
-    {
-        if (lua_slots[i].ble_fifo_depth <= 0)
-        {
-            lua_slots[i].ble_fifo_depth++;
-        }
-    }
-
     return 0;
 }
 
@@ -180,13 +179,7 @@ static void scan_recv(const struct bt_le_scan_recv_info *info, struct net_buf_si
     {
         printk("ble: advertizement truncated (%u > %u bytes)\n", buf->len, BLE_MAX_AD_LEN);
     }
-try_put:
-    if (ble_fifo_put(ev) != 0)
-    {
-        printk("ble: scan fifo full, dropping top event to make room\n");
-        ble_fifo_get(&ble_scan_garbage);
-        goto try_put;
-    }
+    ble_fifo_put(ev);
 }
 
 static struct bt_le_scan_cb ble_scan_callbacks = {

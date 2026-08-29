@@ -85,7 +85,7 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     slot->hide_bottom = false;
     slot->in_tray = false;
     slot->ble_enabled = false;
-    slot->ble_fifo_depth = BLE_FIFO_LENGTH;
+    atomic_set(&slot->ble_fifo_depth, -1);
 }
 
 int lua_thread_update_priorities(int selected_slot)

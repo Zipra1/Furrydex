@@ -20,7 +20,7 @@ struct ble_scan_event
 };
 
 int ble_fifo_peek(struct ble_scan_event *peeked_item, int depth);
-int ble_fifo_put(struct ble_scan_event new_item);
+void ble_fifo_put(struct ble_scan_event new_item);
 int ble_fifo_get(struct ble_scan_event *pulled_item);
 
 extern struct k_msgq ble_scan_msgq;

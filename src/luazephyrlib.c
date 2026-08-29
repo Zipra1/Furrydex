@@ -773,18 +773,33 @@ int lua_sleep_ms(lua_State *L)
 
 int lua_ble_event_get(lua_State *L)
 {
-    struct ble_scan_event pulled_event;
-    int ret = ble_fifo_get(&pulled_event);
+    struct ble_scan_event pulled_event = {0};
+    bool success = false;
+    int own_slot = get_current_lua_slot();
+    
+    if (lua_slots[own_slot].ble_enabled == false)
+    {
+        lua_slots[own_slot].ble_fifo_depth = -1;
+    }
+    lua_slots[own_slot].ble_enabled = true;
+
+    int ret = -1;
+    if (lua_slots[own_slot].ble_fifo_depth >= 0)
+    {
+        ret = ble_fifo_peek(&pulled_event, lua_slots[own_slot].ble_fifo_depth);
+    }
     if (ret == 0)
     {
-        lua_pushboolean(L, true);
-        lua_pushinteger(L, pulled_event.rssi);
-        lua_pushlstring(L, pulled_event.ad_data,pulled_event.ad_len);
-        return 3;
+        success = true;
     }
-    lua_pushboolean(L, false);
-    lua_pushinteger(L, 0);
-    lua_pushstring(L, "");
+    if (success)
+    {
+        lua_slots[own_slot].ble_fifo_depth--;
+    }
+
+    lua_pushboolean(L, success);
+    lua_pushinteger(L, pulled_event.rssi);
+    lua_pushlstring(L, pulled_event.ad_data, pulled_event.ad_len);
     return 3;
 }
 
@@ -1250,18 +1265,18 @@ static int lua_fs_mkdir(lua_State *L)
 
 ////          ̷̷⁄⟍̥,̷̷̷̷̷̷̷̷⟋̷̷⟍
 ////    ̷̷̷̷⟋⟍̥,̷̷̷̷̷̷⟋̷̷̷⟍
-////                              ͜ ͖_͚͚ .﹨﹨,﹨﹨﹨,. . ,    
+////                              ͜ ͖_͚͚ .﹨﹨,﹨﹨﹨,. . ,
 ////                        ,;'̏̏∷̈̏̏̏.̈̏̏̏`̑:⨯﹨;'̈`⨯∷̄.'∴∺1' 0   ﹨
 ////                       ∕∵;̑∶,∷﹨̄̈'̑∴∺⨯̄̈∷﹨̏.̐̈`̑̈0⨯̑̈∺̈⨯0∶,∷'∴  1
 ////                       ﹨ ,̑;';̄,⨯̏̏﹨̏;∷'∴﹨∺⨯̄̄⨯1̑;∷̄';'` ﹨﹨﹨
-////                        ﹨`'﹨;'`;﹨̄̑` ̑ ;̈'`;̑⨯̈̈ ̈̈ ﹨﹨1   ﹨﹨ 
+////                        ﹨`'﹨;'`;﹨̄̑` ̑ ;̈'`;̑⨯̈̈ ̈̈ ﹨﹨1   ﹨﹨
 ////                                ̐`⧹
-////                           ̐       |   |    
-////        /|͉ ͉ /|      /|͉ ͉ /|        |  ̀ |     ̐      
+////                           ̐       |   |
+////        /|͉ ͉ /|      /|͉ ͉ /|        |  ̀ |     ̐
 ////       < ⨁ ⨁ >    < ⨂ ⨂ >    ﹨﹨ ﹨﹨﹨| ﹨ ̀﹨﹨|﹨ ﹨﹨ ﹨
 ////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾ ‾  ‾
 ////‾‾‾‾|‾‾‾‾ ‾‾‾‾‾|‾‾‾‾‾‾‾‾|‾‾‾‾   ‾ |   ‾
-////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾‾ ‾  ‾               
+////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾‾ ‾  ‾
 ////                  "I2C" -fui
 
 static int lua_i2c_configure(lua_State *L)
