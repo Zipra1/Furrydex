@@ -231,20 +231,6 @@ int main(void)
         paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE", font_8);
         convertBuffer(main_buffer, output_buffer);
         Display(25, 0, 36, 125, output_buffer);
-        ret = streetpass_adv_start();
-        if (ret == 0)
-        {
-            paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE\nStarted advertizing", font_8);
-            convertBuffer(main_buffer, output_buffer);
-            Display(25, 0, 36, 125, output_buffer);
-        }
-        else
-        {
-            paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created\nInitialized BLE\nFailed to advertize", font_8);
-            printk("Failed to start advertizing: %i", ret);
-            convertBuffer(main_buffer, output_buffer);
-            Display(25, 0, 36, 125, output_buffer);
-        }
     }
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);

@@ -2,12 +2,14 @@
 #define LUA_THREAD_H
 
 #include <zephyr/kernel.h>
+#include <zephyr/bluetooth/bluetooth.h>
 #include "luazephyrlib.h"
 #include "lua/lua.h"
 
 #define LUA_THREAD_PRIO_FG (K_LOWEST_APPLICATION_THREAD_PRIO - 2)
 #define LUA_THREAD_PRIO_BG  K_LOWEST_APPLICATION_THREAD_PRIO
 #define LUA_THREAD_MAX_NAME_LEN 64
+#define LUA_MAX_BLE_ADVERTIZING_PAYLOAD_LEN 64
 
 typedef struct {
     struct k_thread thread;
@@ -18,17 +20,14 @@ typedef struct {
     volatile bool kill_requested;
     lua_State *state;
     char name[LUA_THREAD_MAX_NAME_LEN];
-    int capture_input;
-    // 0 = no inputs
-    // 1 = capture
-    // 2 = listen (gated)
-    // 3 = listen (always)
+    char capture_input;
     bool hide_top;
     bool hide_bottom;
     bool in_tray;
     uint8_t *icon;
     atomic_t ble_fifo_depth;
     bool ble_enabled;
+    struct bt_le_ext_adv *advertizement;
 } lua_thread_slot_t;
 
 #define LUA_INPUT_NONE 0

@@ -147,6 +147,16 @@ config LUA_THREAD_STACK_SIZE
 
 endmenu
 
+menu "BLE defaults"
+	depends on BT
+
+config BLE_DEFAULT_COMPANY_ID
+	hex "Default company ID used for BLE advertizements"
+	default 0xFFFF
+	help
+	  Default company ID used for BLE advertizements.
+endmenu
+
 menu "USB sample options"
 	depends on USB_DEVICE_STACK_NEXT
 

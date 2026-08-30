@@ -2,8 +2,8 @@
 #define RADIO_H
 
 int ble_core_init(void);
-int streetpass_adv_start(void);
-void streetpass_adv_stop(void);
+int ble_adv_start(struct bt_le_adv_param *adv_param, struct bt_le_ext_adv **ble_adv, struct bt_data *ad, size_t ad_len);
+int streetpass_adv_stop(struct bt_le_ext_adv **ble_adv);
 
 int ble_scan_start(void);
 

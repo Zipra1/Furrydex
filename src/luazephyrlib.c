@@ -770,6 +770,8 @@ int lua_sleep_ms(lua_State *L)
 /////////////////
 
 #include "radio/radio.h"
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/gap.h>
 
 int lua_ble_event_get(lua_State *L)
 {
@@ -800,8 +802,63 @@ int lua_ble_event_get(lua_State *L)
     return 3;
 }
 
+int lua_ble_advertizing_start(lua_State *L)
+{
+    signed char own_slot = get_current_lua_slot();
+
+    const char *payload = luaL_checkstring(L, 1);
+    if (strlen(payload) > 64)
+    {
+        printk("Max BLE string length is 64! The advertizing was unable to start\n");
+        lua_pushinteger(L, -1);
+        return 1;
+    }
+
+    unsigned char mfg_len = 0;
+    uint8_t mfg_data[64];
+
+    int ret;
+
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8; // can add data to mfg_data like this. cool pattern!
+
+    unsigned char payload_len = strlen(payload);
+    for (unsigned char i = 0; i < payload_len; i++)
+    {
+        mfg_data[mfg_len++] = payload[i];
+    }
+
+    struct bt_le_adv_param adv_param = {
+        .options = BT_LE_ADV_OPT_EXT_ADV | BT_LE_ADV_OPT_CODED,
+        .interval_min = BT_GAP_ADV_SLOW_INT_MIN,
+        .interval_max = BT_GAP_ADV_SLOW_INT_MAX,
+    };
+    // interval = milliseconds * 1.6
+
+    struct bt_data ad[] = {
+        BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, mfg_len),
+    };
+
+    ret = ble_adv_start(&adv_param, &lua_slots[own_slot].advertizement, ad, ARRAY_SIZE(ad));
+    if (ret != 0)
+    {
+        printk("Error starting BLE advertizement: %d\n", ret);
+        lua_pushinteger(L, -1);
+        return 1;
+    }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_ble_advertizing_stop(lua_State *L)
+{
+    signed char own_slot = get_current_lua_slot();
+    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+}
+
 static const luaL_Reg ble_funcs[] = {
     {"scan", lua_ble_event_get},
+    {"advertize", lua_ble_advertizing_start},
     {NULL, NULL},
 };
 

@@ -86,6 +86,13 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     slot->in_tray = false;
     slot->ble_enabled = false;
     atomic_set(&slot->ble_fifo_depth, -1);
+    if (slot->advertizement != NULL)
+    {
+        bt_le_ext_adv_stop(slot->advertizement);
+        bt_le_ext_adv_delete(slot->advertizement);
+        printk("BLE advertizing stopped");
+    }
+    slot->advertizement = NULL;
 }
 
 int lua_thread_update_priorities(int selected_slot)
