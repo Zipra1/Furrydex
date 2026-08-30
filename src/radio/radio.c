@@ -7,11 +7,11 @@
 
 // initialization //
 
-static void bt_ready(int err)
+static void bt_ready(int ret)
 {
-    if (err)
+    if (ret)
     {
-        printk("Bluetooth init failed (err %d)\n", err);
+        printk("Bluetooth init failed: %d\n", ret);
         return;
     }
     printk("Bluetooth initialized\n");
@@ -19,12 +19,12 @@ static void bt_ready(int err)
 
 int ble_core_init(void)
 {
-    int err = bt_enable(bt_ready);
-    if (err)
+    int ret = bt_enable(bt_ready);
+    if (ret)
     {
-        printk("bt_enable failed (err %d)\n", err);
+        printk("bt_enable failed: %d\n", ret);
     }
-    return err;
+    return ret;
 }
 
 // scanning //
@@ -139,27 +139,27 @@ int ble_fifo_get(struct ble_scan_event *pulled_item)
 
 int ble_adv_start(struct bt_le_adv_param *adv_param, struct bt_le_ext_adv **ble_adv, struct bt_data *ad, size_t ad_len)
 {
-    int err;
+    int ret;
 
-    err = bt_le_ext_adv_create(adv_param, NULL, ble_adv);
-    if (err)
+    ret = bt_le_ext_adv_create(adv_param, NULL, ble_adv);
+    if (ret)
     {
-        printk("ext_adv_create failed: %d\n", err);
-        return err;
+        printk("ext_adv_create failed: %d\n", ret);
+        return ret;
     }
 
-    err = bt_le_ext_adv_set_data(*ble_adv, ad, ad_len, NULL, 0);
-    if (err)
+    ret = bt_le_ext_adv_set_data(*ble_adv, ad, ad_len, NULL, 0);
+    if (ret)
     {
-        printk("ext_adv_set_data failed: %d\n", err);
-        return err;
+        printk("ext_adv_set_data failed: %d\n", ret);
+        return ret;
     }
 
-    err = bt_le_ext_adv_start(*ble_adv, BT_LE_EXT_ADV_START_DEFAULT);
-    if (err)
+    ret = bt_le_ext_adv_start(*ble_adv, BT_LE_EXT_ADV_START_DEFAULT);
+    if (ret)
     {
-        printk("ext_adv_start failed: %d\n", err);
-        return err;
+        printk("ext_adv_start failed: %d\n", ret);
+        return ret;
     }
 
     printk("BLE advertizing started\n");
