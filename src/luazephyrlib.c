@@ -802,20 +802,20 @@ int lua_ble_event_get(lua_State *L)
     return 3;
 }
 
+#define BLE_PAYLOAD_CAP (BLE_MAX_AD_LEN - 2)
+// -2 to account for the manufacturer ID
 int lua_ble_advertizing_start(lua_State *L)
-{
-    signed char own_slot = get_current_lua_slot();
-
+{   
     const char *payload = luaL_checkstring(L, 1);
-    if (strlen(payload) > 64)
+    if (strlen(payload) > BLE_PAYLOAD_CAP)
     {
-        printk("Max BLE string length is 64! The advertizing was unable to start\n");
+        printk("Max BLE string length is %d! The advertizing was unable to start\n", BLE_PAYLOAD_CAP);
         lua_pushinteger(L, -1);
         return 1;
     }
 
     unsigned char mfg_len = 0;
-    uint8_t mfg_data[64];
+    uint8_t mfg_data[BLE_MAX_AD_LEN];
 
     int ret;
 
@@ -839,7 +839,7 @@ int lua_ble_advertizing_start(lua_State *L)
         BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, mfg_len),
     };
 
-    ret = ble_adv_start(&adv_param, &lua_slots[own_slot].advertizement, ad, ARRAY_SIZE(ad));
+    ret = ble_adv_start(&adv_param, &lua_slots[get_current_lua_slot()].advertizement, ad, ARRAY_SIZE(ad));
     if (ret != 0)
     {
         printk("Error starting BLE advertizement: %d\n", ret);
