@@ -805,8 +805,24 @@ int lua_ble_event_get(lua_State *L)
 #define BLE_PAYLOAD_CAP (BLE_MAX_AD_LEN - 2)
 // -2 to account for the manufacturer ID
 int lua_ble_advertizing_start(lua_State *L)
-{   
+{
+    signed char own_slot = get_current_lua_slot();
+    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
     const char *payload = luaL_checkstring(L, 1);
+    uint32_t interval_min = luaL_optinteger(L, 2, 1000);
+    uint32_t interval_max = luaL_optinteger(L, 3, 1200);
+
+    if (interval_min < 20)
+    {
+        printk("Minimum BLE interval is 20ms, interval %d clamped to 20ms", interval_min);
+        interval_min = 20;
+    }
+    if (interval_max > 10240)
+    {
+        printk("Maximum BLE interval is 10240ms, interval %d clamped to 10240", interval_max);
+        interval_max = 10240;
+    }
+
     if (strlen(payload) > BLE_PAYLOAD_CAP)
     {
         printk("Max BLE string length is %d! The advertizing was unable to start\n", BLE_PAYLOAD_CAP);
@@ -820,7 +836,7 @@ int lua_ble_advertizing_start(lua_State *L)
     int ret;
 
     mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
-    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8; // can add data to mfg_data like this. cool pattern!
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8;
 
     unsigned char payload_len = strlen(payload);
     for (unsigned char i = 0; i < payload_len; i++)
@@ -830,8 +846,8 @@ int lua_ble_advertizing_start(lua_State *L)
 
     struct bt_le_adv_param adv_param = {
         .options = BT_LE_ADV_OPT_EXT_ADV | BT_LE_ADV_OPT_CODED,
-        .interval_min = BT_GAP_ADV_SLOW_INT_MIN,
-        .interval_max = BT_GAP_ADV_SLOW_INT_MAX,
+        .interval_min = interval_min * 1.6,
+        .interval_max = interval_max * 1.6,
     };
     // interval = milliseconds * 1.6
 
@@ -854,6 +870,7 @@ int lua_ble_advertizing_stop(lua_State *L)
 {
     signed char own_slot = get_current_lua_slot();
     streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+    return 0;
 }
 
 static const luaL_Reg ble_funcs[] = {
