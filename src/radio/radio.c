@@ -65,12 +65,15 @@ int ble_scan_start(void)
 int ble_scan_stop(void)
 {
     int ret = bt_le_scan_stop();
-    if(ret==0){
+    if (ret == 0)
+    {
         printk("ble: Stopped BLE scan");
-    }else{
+    }
+    else
+    {
         printk("ble: Failed to stop BLE scan: %d", ret);
     }
-    
+
     return ret;
 }
 
