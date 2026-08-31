@@ -234,7 +234,6 @@ int main(void)
     }
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
-    ble_scan_start();
     while (true)
     {
         draw_ui();

@@ -152,7 +152,7 @@ menu "BLE defaults"
 
 config BLE_DEFAULT_COMPANY_ID
 	hex "Default company ID used for BLE advertizements"
-	default 0xFFFF
+	default 0x3639
 	help
 	  Default company ID used for BLE advertizements.
 endmenu

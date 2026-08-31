@@ -6,6 +6,7 @@ int ble_adv_start(struct bt_le_adv_param *adv_param, struct bt_le_ext_adv **ble_
 int streetpass_adv_stop(struct bt_le_ext_adv **ble_adv);
 
 int ble_scan_start(void);
+int ble_scan_stop(void);
 
 #include <zephyr/bluetooth/bluetooth.h>
 #define BLE_MAX_AD_LEN 92

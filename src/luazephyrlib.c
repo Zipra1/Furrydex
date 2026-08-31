@@ -780,7 +780,19 @@ int lua_ble_event_get(lua_State *L)
 
     if (lua_slots[own_slot].ble_enabled == false)
     {
+        int start_scan = true;
         atomic_set(&lua_slots[own_slot].ble_fifo_depth, -1);
+        for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+        {
+            if (lua_slots[i].ble_enabled == true)
+            {
+                start_scan = false;
+            }
+        }
+        if (start_scan)
+        {
+            ble_scan_start();
+        }
     }
     lua_slots[own_slot].ble_enabled = true;
 
@@ -795,11 +807,17 @@ int lua_ble_event_get(lua_State *L)
     {
         atomic_dec(&lua_slots[own_slot].ble_fifo_depth);
     }
+    char *payload = pulled_event.ad_data + 4;
+    size_t payload_len = pulled_event.ad_len > 4 ? (size_t)(pulled_event.ad_len - 4) : 0;
+
+    char *manufacturer_id = pulled_event.ad_data + 2;
 
     lua_pushboolean(L, (ret == 0) ? true : false);
     lua_pushinteger(L, pulled_event.rssi);
-    lua_pushlstring(L, pulled_event.ad_data, pulled_event.ad_len);
-    return 3;
+    lua_pushlstring(L, payload, payload_len);
+    lua_pushlstring(L, manufacturer_id, 2);
+    lua_pushlstring(L, pulled_event.ad_data, 2);
+    return 5;
 }
 
 #define BLE_PAYLOAD_CAP (BLE_MAX_AD_LEN - 2)
@@ -835,8 +853,8 @@ int lua_ble_advertizing_start(lua_State *L)
 
     int ret;
 
-    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
     mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8;
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
 
     unsigned char payload_len = strlen(payload);
     for (unsigned char i = 0; i < payload_len; i++)
