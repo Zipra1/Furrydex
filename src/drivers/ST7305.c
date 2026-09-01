@@ -102,7 +102,7 @@ void lcdReset()
     gpio_pin_set_dt(&rst, 1);
 }
 
-void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) // why are these u16?
+void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
     sendCommand(0x2a);
     sendData(x1);
@@ -343,7 +343,7 @@ int initDisplay()
 //     }
 // }
 
-void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer) // 2308ms
+void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer)
 {
     // int64_t start_time = k_uptime_get();
 
