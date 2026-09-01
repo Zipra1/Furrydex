@@ -630,11 +630,14 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 {
     luaL_newmetatable(L, "paint.canvas");
     lua_pushcfunction(L, lua_canvas_gc);
-    luaL_newmetatable(L, "paint.font");
-    lua_pushcfunction(L, lua_font_gc);
     lua_setfield(L, -2, "__gc");
     lua_pushcfunction(L, lua_canvas_index);
     lua_setfield(L, -2, "__index");
+    lua_pop(L, 1);
+
+    luaL_newmetatable(L, "paint.font");
+    lua_pushcfunction(L, lua_font_gc);
+    lua_setfield(L, -2, "__gc");
     lua_pop(L, 1);
 
     luaL_newlib(L, paint_funcs);

@@ -105,11 +105,6 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     {
         ble_scan_stop();
     }
-
-    free(slot->script);
-    slot->script = NULL;
-    slot->shell = NULL;
-    slot->in_use = false;
 }
 
 int lua_thread_update_priorities(int selected_slot)
@@ -268,6 +263,10 @@ static void lua_thread_entry(void *a, void *b, void *c)
 
     lua_close(state);
     lua_thread_reset_slot_state(slot);
+    free(slot->script);
+    slot->script = NULL;
+    slot->shell = NULL;
+    slot->in_use = false;
     lua_thread_refresh_ui_state();
 }
 int num_lua_threads = 0;
@@ -277,6 +276,7 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
 {
     if (strlen(name) > LUA_THREAD_MAX_NAME_LEN)
     {
+        printk("Lua thread couldnt start, name too long!");
         return -ENOMEM;
     }
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
