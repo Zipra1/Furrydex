@@ -37,6 +37,7 @@ static const char *const known_commands[] = {
     "shell",
     "lpm",
     "hpm",
+    "fps",
     NULL,
 };
 

@@ -283,7 +283,9 @@ static int cmd_hpm(const struct shell *sh, size_t argc, char **argv)
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     shell_print(sh, "ST7305 SH: Entering HPM");
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
     enterHPM();
+    k_mutex_unlock(&display_transfer_mutex);
     return 0;
 }
 
@@ -294,11 +296,30 @@ static int cmd_lpm(const struct shell *sh, size_t argc, char **argv)
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     shell_print(sh, "ST7305 SH: Entering LPM");
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
     enterLPM();
+    k_mutex_unlock(&display_transfer_mutex);
     return 0;
 }
 
 SHELL_CMD_REGISTER(lpm, NULL, "Set display to low power mode", cmd_lpm);
+
+static int cmd_fps(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 2)
+    {
+        shell_error(sh, "Usage: fps <fps*100>");
+        return -EINVAL;
+    }
+
+    uint16_t fps = atoi(argv[1]);
+
+    shell_print(sh, "ST7305 SH: Setting FPS to %d", (fps/100));
+    setFPS(fps);
+    return 0;
+}
+
+SHELL_CMD_REGISTER(fps, NULL, "Set display FPS (fps = input/100)", cmd_fps);
 
 // INFO
 

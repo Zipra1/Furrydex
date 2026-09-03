@@ -321,13 +321,13 @@ int initDisplay()
     // sendData(0X03);
     // sendData(0X1F);
 
-    sendCommand(0x39); // HPM
+    sendCommand(0x38); // HPM
     sendCommand(0x29); // Display on
 
     k_msleep(120);
 
     LCD_Address_Set(25, 0, 35, 124);
-    
+
     return 0;
 }
 
@@ -346,9 +346,12 @@ int initDisplay()
 //     }
 // }
 
+K_MUTEX_DEFINE(display_transfer_mutex);
+
 void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer)
 {
     // int64_t start_time = k_uptime_get();
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
@@ -362,6 +365,7 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
     spi_write(spi_dev, &spi_cfg, &tx_bufs);
     gpio_pin_set_dt(&cs, 0);
 
+    k_mutex_unlock(&display_transfer_mutex);
     // duration = k_uptime_get() - start_time;
     // printf("LCD frame took: %lld ms\n", duration);
 }
@@ -370,91 +374,70 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 #define ST7305_CMD_LPM 0x39    /* Low Power Mode ON   (§8.1.23) */
 #define ST7305_CMD_FRCTRL 0xB2 /* Frame Rate Control  (§8.2.3)  */
 
-// HPM framerates work fine
-// LPM framerates seem to be stuck at 8Hz
-// Maybe due to voltage settings?? but i have no fucking clue Tbh (┬┬﹏┬┬)
+bool hpm_enabled = true;
 
-void enterLPM()
+// HPM and LPM have a different sequence specified in the datasheet, but this seems faster （￣︶￣）↗　
+void enterLPM(void)
 {
-    printk("ST7305: entering lpm");
-    sendCommand(ST7305_CMD_HPM);
-    // Got these values for C1,C2,C4,C5,C9 from the ST7305 V1.2 datasheet, since it said in its initialization code that it should be 1Hz. so thought they were correct for LPM, but seems not to have resolved the issue.
-    sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
-    sendData(0X41);
-    sendData(0X41);
-    sendData(0X41);
-
-    sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x32);
-    sendData(0x32);
-    sendData(0x32);
-    sendData(0x32);
-
-    sendCommand(0XC4); // VSHN Setting
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-
-    sendCommand(0XC5); // VSLN Setting
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-
-    sendCommand(0XC9); // Source Voltage Select
-    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
-
-    k_msleep(20);
-
-    sendCommand(ST7305_CMD_LPM);
-
-    k_msleep(100);
-}
-
-void enterHPM()
-{
-    printk("ST7305: entering hpm");
-    sendCommand(0x39);
-    sendCommand(0x38);
-
-    k_msleep(300);
-
-    sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
-    sendData(0X41);
-    sendData(0X41);
-    sendData(0X41);
-
-    sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-
-    sendCommand(0XC4); // VSHN Setting
-    sendData(0X41);    // VSHN1=-3.8V
-    sendData(0X41);    // VSHN2=-3.8V
-    sendData(0X41);    // VSHN3=-3.8V
-    sendData(0X41);    // VSHN4=-3.8V
-
-    sendCommand(0XC5); // VSLN Setting
-    sendData(0X19);    // VSLN1=0.5V
-    sendData(0X19);    // VSLN2=0.5V
-    sendData(0X19);    // VSLN3=0.5V
-    sendData(0X19);    // VSLN4=0.5V
-
-    sendCommand(0XC9); // Source Voltage Select
-    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
-
-    k_msleep(20);
-}
-
-int setFPS(int fps)
-{
-    if (fps == 1600) // 16Hz
+    if (hpm_enabled)
     {
+        sendCommand(ST7305_CMD_LPM);
+        LCD_Address_Set(25, 0, 35, 124);
+        hpm_enabled = false;
+    }
+}
+
+void enterHPM(void)
+{
+    if (!hpm_enabled)
+    {
+        sendCommand(ST7305_CMD_HPM);
+        LCD_Address_Set(25, 0, 35, 124);
+        hpm_enabled = true;
+    }
+}
+
+int setFPS(uint16_t fps)
+{
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
+    if (fps == 25)
+    { // 0.25Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB0);
+    }
+    if (fps == 50)
+    { // 0.5Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB1);
+    }
+    if (fps == 100)
+    { // 1Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB2);
+    }
+    if (fps == 200)
+    { // 2Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB3);
+    }
+    if (fps == 400)
+    { // 4Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB4);
+    }
+    if (fps == 800)
+    { // 8Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB5);
+    }
+    if (fps == 1600)
+    { // 16Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -464,8 +447,8 @@ int setFPS(int fps)
         sendData(0xA6);
         sendData(0xE9);
     }
-    if (fps == 2550) // 25.5Hz
-    {
+    if (fps == 2550)
+    { // 25.5Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -475,8 +458,8 @@ int setFPS(int fps)
         sendData(0x80);
         sendData(0xE9);
     }
-    if (fps == 3200) // 32Hz
-    {
+    if (fps == 3200)
+    { // 32Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -486,8 +469,8 @@ int setFPS(int fps)
         sendData(0xA6);
         sendData(0xE9);
     }
-    if (fps == 5100) // 51Hz
-    {
+    if (fps == 5100)
+    { // 51Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -497,5 +480,8 @@ int setFPS(int fps)
         sendData(0x80);
         sendData(0xE9);
     }
-    // no return on a functio nthat returns int. silly goose. you need that or it gets upset!
+
+    LCD_Address_Set(25, 0, 35, 124);
+    k_mutex_unlock(&display_transfer_mutex);
+    return 0;
 }

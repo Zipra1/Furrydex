@@ -58,7 +58,7 @@ int ble_scan_start(void)
         .window = BT_GAP_SCAN_FAST_WINDOW,
     };
     bt_le_scan_cb_register(&ble_scan_callbacks);
-    printk("ble: Starting BLE scan");
+    printk("ble: Starting BLE scan\n");
     return bt_le_scan_start(&scan_param, NULL);
 }
 
@@ -67,11 +67,11 @@ int ble_scan_stop(void)
     int ret = bt_le_scan_stop();
     if (ret == 0)
     {
-        printk("ble: Stopped BLE scan");
+        printk("ble: Stopped BLE scan\n");
     }
     else
     {
-        printk("ble: Failed to stop BLE scan: %d", ret);
+        printk("ble: Failed to stop BLE scan: %d\n", ret);
     }
 
     return ret;
