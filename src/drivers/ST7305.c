@@ -95,10 +95,10 @@ void sendData(uint8_t byte)
 
 void lcdReset()
 {
-    // gpio_pin_set_dt(&rst, 1);
-    k_msleep(100);
+    gpio_pin_set_dt(&rst, 1);
+    k_msleep(10);
     gpio_pin_set_dt(&rst, 0);
-    k_msleep(100);
+    k_msleep(10);
     gpio_pin_set_dt(&rst, 1);
 }
 
@@ -210,44 +210,39 @@ int initDisplay()
     sendData(0x01);
 
     sendCommand(0xC0); // Gate Voltage Setting VGH=12V ; VGL=-5V
-    sendData(0x11);
-    sendData(0x04);
+    sendData(0x0E);
+    sendData(0x05);
 
     sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
+    sendData(0X41);    // VSHP1 = 5V
     sendData(0X41);
     sendData(0X41);
     sendData(0X41);
 
     sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
+    sendData(0x32);    // VSLP1 = 1V
+    sendData(0x32);
+    sendData(0x32);
+    sendData(0x32);
 
     sendCommand(0XC4); // VSHN Setting
-    sendData(0X41);    // VSHN1=-3.8V
-    sendData(0X41);    // VSHN2=-3.8V
-    sendData(0X41);    // VSHN3=-3.8V
-    sendData(0X41);    // VSHN4=-3.8V
+    sendData(0x4B);    // VSHN = -4V
+    sendData(0x4B);
+    sendData(0x4B);
+    sendData(0x4B);
 
     sendCommand(0XC5); // VSLN Setting
-    sendData(0X19);    // VSLN1=0.5V
-    sendData(0X19);    // VSLN2=0.5V
-    sendData(0X19);    // VSLN3=0.5V
-    sendData(0X19);    // VSLN4=0.5V
+    sendData(0x00);    // VSLN1=0v
+    sendData(0x00);
+    sendData(0x00);
+    sendData(0x00);
 
     sendCommand(0XD8); // OSC Setting
-    sendData(0XA6);
+    sendData(0XA6);    // HPM = 32Hz
     sendData(0XE9);
 
-    //    sendCommand(0xCB);//VCOMH Setting
-    //    sendData(0x14);//14  0C   7
-
     sendCommand(0XB2); // Frame Rate Control
-    sendData(0X02);    // HPM=16hz ; LPM=8hz
-    // 0x15 for High Frame Rate mode
-    // This should be live configurable. Find out what's going on here
+    sendData(0X02);    // HPM=32hz ; LPM = 0.5hz
 
     sendCommand(0XB3); // Update Period Gate EQ Control in HPM
     sendData(0XE5);    // Gate EQ on
@@ -271,22 +266,22 @@ int initDisplay()
     sendData(0X76);
     sendData(0X45);
 
-    sendCommand(0X62); // Gate Timing Control
-    sendData(0X32);
-    sendData(0X03);
-    sendData(0X1F);
-
     sendCommand(0XB7); // Source EQ Enable
     sendData(0X13);
 
     sendCommand(0xB0); // Duty Setting
-    sendData(0x64);    // 250duty/4=63
+    sendData(0x3F);    // ~~250duty/4=63~~ // 252 line
 
     sendCommand(0x11); // Sleep out
-    k_msleep(100);     // delay_ms 100ms
+    k_msleep(120);
 
     sendCommand(0XC9); // Source Voltage Select
     sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
+
+    sendCommand(0xC7);
+    sendData(0xC1);
+    sendData(0x41);
+    sendData(0x26);
 
     sendCommand(0x36); // Memory Data Access Control
     if (USE_HORIZONTAL == 0)
@@ -297,22 +292,23 @@ int initDisplay()
     {
         sendData(0x4C);
     }
+    // sendData(0x00);
 
     sendCommand(0x3A); // Data Format Select 4 write for 24 bit
     sendData(0x11);
     sendCommand(0xB9); // Source Setting
     sendData(0x20);
     sendCommand(0xB8); // Panel Setting Frame inversion
-    sendData(0x29);
+    sendData(0x29);    // prev 0x29
 
     sendCommand(0x21); // Display inversion on (0x20 for off)
 
-    // sendCommand(0x2A);////Column Address Setting S61~S182
-    // sendData(0x05);
-    // sendData(0x36);
-    // sendCommand(0x2B);////Row Address Setting G1~G250
-    // sendData(0x00);
-    // sendData(0xC7);
+    sendCommand(0x2A); // Column Address Setting S61~S182
+    sendData(0x19);
+    sendData(0x23);
+    sendCommand(0x2B); // Row Address Setting G1~G250
+    sendData(0x00);
+    sendData(0x7C);
 
     sendCommand(0X35); // TE
     sendData(0X00);
@@ -320,11 +316,18 @@ int initDisplay()
     sendCommand(0xD0);
     sendData(0xFF);
 
+    // sendCommand(0X62); // Gate Timing Control
+    // sendData(0X32);
+    // sendData(0X03);
+    // sendData(0X1F);
+
+    sendCommand(0x39); // HPM
     sendCommand(0x29); // Display on
 
-    // sendCommand(0x39); // LPM
-
     k_msleep(120);
+
+    LCD_Address_Set(25, 0, 35, 124);
+    
     return 0;
 }
 
@@ -353,8 +356,6 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
         .count = 1};
-
-    LCD_Address_Set(25, 0, 35, 124);
 
     // int64_t duration = k_uptime_get() - start_time;
     gpio_pin_set_dt(&cs, 1);
