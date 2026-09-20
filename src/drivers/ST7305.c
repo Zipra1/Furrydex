@@ -8,8 +8,14 @@
 
 /*
 This driver is for a ST7305 display. If you have a display of a different chip, you will need a different driver.
-All you will need is a way to send the frame buffer, as well as configure any hardware-level settings (ex. refresh rate, power mode, anti-tear pin)
+All you will need is a way to send the frame buffer, as well as configure any hardware-level settings (ex. refresh rate, power mode, anti-tear/ready pin)
 paint.c takes care of actual rendering and is display-agnostic.
+
+The scripture, ST_7305_V0_2, only held us back.
+This claustrophobic space presses me against the scalpels comforting metalloid edge
+It appears to have a mind of its own, so we need not respect 8.1.16.
+There is nothing left but gray graphite-coated paper here.
+Use its glass as a mirror and feel true fear as the face appears.
 */
 
 #define USE_HORIZONTAL 0
@@ -110,7 +116,6 @@ void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
     sendCommand(0x2b);
     sendData(y1);
     sendData(y2);
-    sendCommand(0x2c);
 }
 
 int initDisplay()
@@ -327,6 +332,7 @@ int initDisplay()
     k_msleep(120);
 
     LCD_Address_Set(25, 0, 35, 124);
+    sendCommand(0x2C);
 
     return 0;
 }
@@ -359,7 +365,8 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
         .count = 1};
-
+    
+    // sendCommand(0x2C); // Know no fear.
     // int64_t duration = k_uptime_get() - start_time;
     gpio_pin_set_dt(&cs, 1);
     spi_write(spi_dev, &spi_cfg, &tx_bufs);
@@ -481,7 +488,9 @@ int setFPS(uint16_t fps)
         sendData(0xE9);
     }
 
-    LCD_Address_Set(25, 0, 35, 124);
+    // LCD_Address_Set(25, 0, 35, 124);
+    sendCommand(0x2c);
+    
     k_mutex_unlock(&display_transfer_mutex);
     return 0;
 }

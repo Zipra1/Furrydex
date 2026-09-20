@@ -93,18 +93,6 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
         printk("BLE advertizing stopped");
     }
     slot->advertizement = NULL;
-    int stop_scan = true;
-    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
-    {
-        if (lua_slots[i].ble_enabled == true)
-        {
-            stop_scan = false;
-        }
-    }
-    if (stop_scan)
-    {
-        ble_scan_stop();
-    }
 }
 
 int lua_thread_update_priorities(int selected_slot)
@@ -268,6 +256,19 @@ static void lua_thread_entry(void *a, void *b, void *c)
     slot->shell = NULL;
     slot->in_use = false;
     lua_thread_refresh_ui_state();
+
+    int stop_scan = true;
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (lua_slots[i].ble_enabled == true)
+        {
+            stop_scan = false;
+        }
+    }
+    if (stop_scan)
+    {
+        ble_scan_stop();
+    }
 }
 int num_lua_threads = 0;
 int num_shown_lua_threads = 0;

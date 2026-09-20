@@ -49,31 +49,46 @@ static struct bt_le_scan_cb ble_scan_callbacks = {
     .recv = scan_recv,
 };
 
+static bool ble_scanning = false;
+
 int ble_scan_start(void)
 {
     struct bt_le_scan_param scan_param = {
         .type = BT_LE_SCAN_TYPE_PASSIVE,
-        .options = BT_LE_SCAN_OPT_CODED | BT_LE_SCAN_OPT_NO_1M,
+        .options = BT_LE_SCAN_OPT_CODED,
         .interval = BT_GAP_SCAN_FAST_INTERVAL,
         .window = BT_GAP_SCAN_FAST_WINDOW,
     };
     bt_le_scan_cb_register(&ble_scan_callbacks);
-    printk("ble: Starting BLE scan\n");
-    return bt_le_scan_start(&scan_param, NULL);
+
+    int ret = bt_le_scan_start(&scan_param, NULL);
+    if (ret == 0)
+    {
+        printk("ble: Starting BLE scan\n");
+        ble_scanning = true;
+    }
+    else
+    {
+        printk("ble: Failed to start BLE scan: %d\n", ret);
+    }
 }
 
 int ble_scan_stop(void)
 {
-    int ret = bt_le_scan_stop();
-    if (ret == 0)
+    int ret = 1;
+    if (ble_scanning)
     {
-        printk("ble: Stopped BLE scan\n");
+        ret = bt_le_scan_stop();
+        if (ret == 0)
+        {
+            printk("ble: Stopped BLE scan\n");
+            ble_scanning = false;
+        }
+        else
+        {
+            printk("ble: Failed to stop BLE scan: %d\n", ret);
+        }
     }
-    else
-    {
-        printk("ble: Failed to stop BLE scan: %d\n", ret);
-    }
-
     return ret;
 }
 
