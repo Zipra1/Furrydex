@@ -23,6 +23,7 @@
 #include "lua_thread.h"
 #include "ui.h"
 #include "console/console_router.h"
+#include "radio/radio.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -142,25 +143,29 @@ static int enable_usb_device_next(void)
 
 unsigned char output_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
 
+uint8_t text_pos = 2;
+void screen_log(char *log)
+{
+    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, (text_pos++) * 8, log, font_8);
+    convertBuffer(main_buffer, output_buffer);
+    Display(25, 0, 36, 125, output_buffer);
+}
+
 int main(void)
 {
     int ret;
     initDisplay();
     invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
-    printk("Display initialized\n");
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized", font_8);
-    convertBuffer(main_buffer, output_buffer);
-    Display(25, 0, 36, 125, output_buffer);
+    screen_log("Display initialized");
 
     if (!device_is_ready(uart_dev))
     {
         LOG_ERR("CDC ACM device not ready");
+        screen_log("CDC ACM failed");
         return 0;
     }
 
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready0", font_8);
-    convertBuffer(main_buffer, output_buffer);
-    Display(25, 0, 36, 125, output_buffer);
+    screen_log("CDC ACM ready");
 
     ret = enable_usb_device_next();
     if (ret != 0)
@@ -169,9 +174,7 @@ int main(void)
         return 0;
     }
 
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started", font_8);
-    convertBuffer(main_buffer, output_buffer);
-    Display(25, 0, 36, 125, output_buffer);
+    screen_log("USB device started");
 
     console_router_init();
 
@@ -185,10 +188,7 @@ int main(void)
     else
     {
         printk("Successfully mounted SD card\n");
-
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted", font_8);
-        convertBuffer(main_buffer, output_buffer);
-        Display(25, 0, 36, 125, output_buffer);
+        screen_log("SD card mounted");
 
         struct fs_file_t data_filp;
         fs_file_t_init(&data_filp);
@@ -211,16 +211,22 @@ int main(void)
         ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
         fs_close(&data_filp);
 
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, 20, "Display initialized\nCDC ACM ready\nUSB device started\nSD card mounted\nTest file created", font_8);
-        convertBuffer(main_buffer, output_buffer);
-        Display(25, 0, 36, 125, output_buffer);
+        screen_log("Test file created");
 
         // bool force = true;
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
     }
 
-    blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
+    if (ble_core_init() == 0)
+    {
+        screen_log("Initialized BLE");
+    }
+    else
+    {
+        screen_log("Failed to initialize BLE");
+    }
 
+    blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
     while (true)
     {
         draw_ui();
@@ -233,7 +239,7 @@ int main(void)
     return 0;
 }
 
-//      I see your gait tremble at the sight as if to relax a great beast beneath as if to hypnotize it with your step so that it may not emerge and consume us
+//      I see your gait tremble at the sight as if to relax a great beast beneath, as if to hypnotize it with your step so that it may not emerge and consume us
 //  I see and I think, "We are not doing this" in a desperate plea to God but of course we are and of course it will
 //     / |﹊﹊﹊﹊/|     |
 //    /  |      / |     |\﹉\  Now it sits before us, beady glass eyes commanding my every move.
@@ -248,7 +254,7 @@ int main(void)
 //  /         /  |#     |
 // /         /   |#   Do we really worship the same God?
 /*/         /    |      |
-           /     ;      |  
+           /     ;      |
          .       .      :
                         ;
 

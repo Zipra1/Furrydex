@@ -630,11 +630,14 @@ LUAMOD_API int luaopen_paint(lua_State *L)
 {
     luaL_newmetatable(L, "paint.canvas");
     lua_pushcfunction(L, lua_canvas_gc);
-    luaL_newmetatable(L, "paint.font");
-    lua_pushcfunction(L, lua_font_gc);
     lua_setfield(L, -2, "__gc");
     lua_pushcfunction(L, lua_canvas_index);
     lua_setfield(L, -2, "__index");
+    lua_pop(L, 1);
+
+    luaL_newmetatable(L, "paint.font");
+    lua_pushcfunction(L, lua_font_gc);
+    lua_setfield(L, -2, "__gc");
     lua_pop(L, 1);
 
     luaL_newlib(L, paint_funcs);
@@ -763,6 +766,144 @@ int lua_sleep_ms(lua_State *L)
     int ms = (int)luaL_checknumber(L, 1);
     k_msleep(ms);
     return 0;
+}
+
+/////////////////
+/// BLUETOOTH ///
+/////////////////
+
+#include "radio/radio.h"
+#include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/gap.h>
+
+int lua_ble_event_get(lua_State *L)
+{
+    struct ble_scan_event pulled_event = {0};
+    signed char own_slot = get_current_lua_slot();
+
+    if (lua_slots[own_slot].ble_enabled == false)
+    {
+        int start_scan = true;
+        atomic_set(&lua_slots[own_slot].ble_fifo_depth, -1);
+        for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+        {
+            if (lua_slots[i].ble_enabled == true)
+            {
+                start_scan = false;
+            }
+        }
+        if (start_scan)
+        {
+            ble_scan_start();
+        }
+    }
+    lua_slots[own_slot].ble_enabled = true;
+
+    signed char fifo_depth = atomic_get(&lua_slots[own_slot].ble_fifo_depth);
+    signed char ret = -1;
+
+    if (fifo_depth >= 0)
+    {
+        ret = ble_fifo_peek(&pulled_event, fifo_depth);
+    }
+    if (ret == 0)
+    {
+        atomic_dec(&lua_slots[own_slot].ble_fifo_depth);
+    }
+    char *payload = pulled_event.ad_data + 4;
+    size_t payload_len = pulled_event.ad_len > 4 ? (size_t)(pulled_event.ad_len - 4) : 0;
+
+    char *manufacturer_id = pulled_event.ad_data + 2;
+
+    lua_pushboolean(L, (ret == 0) ? true : false);
+    lua_pushinteger(L, pulled_event.rssi);
+    lua_pushlstring(L, payload, payload_len);
+    lua_pushlstring(L, manufacturer_id, 2);
+    lua_pushlstring(L, pulled_event.ad_data, 2);
+    return 5;
+}
+
+#define BLE_PAYLOAD_CAP (BLE_MAX_AD_LEN - 2)
+// -2 to account for the manufacturer ID
+int lua_ble_advertizing_start(lua_State *L)
+{
+    signed char own_slot = get_current_lua_slot();
+    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+    const char *payload = luaL_checkstring(L, 1);
+    uint32_t interval_min = luaL_optinteger(L, 2, 1000);
+    uint32_t interval_max = luaL_optinteger(L, 3, 1200);
+
+    if (interval_min < 20)
+    {
+        printk("Minimum BLE interval is 20ms, interval %d clamped to 20ms", interval_min);
+        interval_min = 20;
+    }
+    if (interval_max > 10240)
+    {
+        printk("Maximum BLE interval is 10240ms, interval %d clamped to 10240", interval_max);
+        interval_max = 10240;
+    }
+
+    if (strlen(payload) > BLE_PAYLOAD_CAP)
+    {
+        printk("Max BLE string length is %d! The advertizing was unable to start\n", BLE_PAYLOAD_CAP);
+        lua_pushinteger(L, -1);
+        return 1;
+    }
+
+    unsigned char mfg_len = 0;
+    uint8_t mfg_data[BLE_MAX_AD_LEN];
+
+    int ret;
+
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8;
+    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
+
+    unsigned char payload_len = strlen(payload);
+    for (unsigned char i = 0; i < payload_len; i++)
+    {
+        mfg_data[mfg_len++] = payload[i];
+    }
+
+    struct bt_le_adv_param adv_param = {
+        .options = BT_LE_ADV_OPT_EXT_ADV | BT_LE_ADV_OPT_CODED,
+        .interval_min = interval_min * 1.6,
+        .interval_max = interval_max * 1.6,
+    };
+    // interval = milliseconds * 1.6
+
+    struct bt_data ad[] = {
+        BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, mfg_len),
+    };
+
+    ret = ble_adv_start(&adv_param, &lua_slots[get_current_lua_slot()].advertizement, ad, ARRAY_SIZE(ad));
+    if (ret != 0)
+    {
+        printk("Error starting BLE advertizement: %d\n", ret);
+        lua_pushinteger(L, -1);
+        return 1;
+    }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_ble_advertizing_stop(lua_State *L)
+{
+    signed char own_slot = get_current_lua_slot();
+    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+    return 0;
+}
+
+static const luaL_Reg ble_funcs[] = {
+    {"scan", lua_ble_event_get},
+    {"advertize", lua_ble_advertizing_start},
+    {NULL, NULL},
+};
+
+LUAMOD_API int luaopen_ble(lua_State *L)
+{
+    luaL_newlib(L, ble_funcs);
+    return 1;
 }
 
 //////////////
@@ -1214,9 +1355,21 @@ static int lua_fs_mkdir(lua_State *L)
     return 1;
 }
 
-///////////
-/// I2C ///
-///////////
+////          ̷̷⁄⟍̥,̷̷̷̷̷̷̷̷⟋̷̷⟍
+////    ̷̷̷̷⟋⟍̥,̷̷̷̷̷̷⟋̷̷̷⟍
+////                              ͜ ͖_͚͚ .﹨﹨,﹨﹨﹨,. . ,
+////                        ,;'̏̏∷̈̏̏̏.̈̏̏̏`̑:⨯﹨;'̈`⨯∷̄.'∴∺1' 0   ﹨
+////                       ∕∵;̑∶,∷﹨̄̈'̑∴∺⨯̄̈∷﹨̏.̐̈`̑̈0⨯̑̈∺̈⨯0∶,∷'∴  1
+////                       ﹨ ,̑;';̄,⨯̏̏﹨̏;∷'∴﹨∺⨯̄̄⨯1̑;∷̄';'` ﹨﹨﹨
+////                        ﹨`'﹨;'`;﹨̄̑` ̑ ;̈'`;̑⨯̈̈ ̈̈ ﹨﹨1   ﹨﹨
+////                                ̐`⧹
+////                           ̐       |   |
+////        /|͉ ͉ /|      /|͉ ͉ /|        |  ̀ |     ̐
+////       < ⨁ ⨁ >    < ⨂ ⨂ >    ﹨﹨ ﹨﹨﹨| ﹨ ̀﹨﹨|﹨ ﹨﹨ ﹨
+////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾ ‾  ‾
+////‾‾‾‾|‾‾‾‾ ‾‾‾‾‾|‾‾‾‾‾‾‾‾|‾‾‾‾   ‾ |   ‾
+////‾‾‾‾‾‾‾‾‾|‾‾‾‾‾‾‾‾‾‾‾ ‾  ‾
+////                  "I2C" -fui
 
 static int lua_i2c_configure(lua_State *L)
 {

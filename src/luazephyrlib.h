@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <zephyr/kernel.h>
+#include <zephyr/bluetooth/gap.h>
 
 extern struct k_mutex paint_mutex;
 

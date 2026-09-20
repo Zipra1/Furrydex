@@ -8,8 +8,14 @@
 
 /*
 This driver is for a ST7305 display. If you have a display of a different chip, you will need a different driver.
-All you will need is a way to send the frame buffer, as well as configure any hardware-level settings (ex. refresh rate, power mode, anti-tear pin)
+All you will need is a way to send the frame buffer, as well as configure any hardware-level settings (ex. refresh rate, power mode, anti-tear/ready pin)
 paint.c takes care of actual rendering and is display-agnostic.
+
+The scripture, ST_7305_V0_2, only held us back.
+This claustrophobic space presses me against the scalpels comforting metalloid edge
+It appears to have a mind of its own, so we need not respect 8.1.16.
+There is nothing left but gray graphite-coated paper here.
+Use its glass as a mirror and feel true fear as the face appears.
 */
 
 #define USE_HORIZONTAL 0
@@ -95,14 +101,14 @@ void sendData(uint8_t byte)
 
 void lcdReset()
 {
-    // gpio_pin_set_dt(&rst, 1);
-    k_msleep(100);
+    gpio_pin_set_dt(&rst, 1);
+    k_msleep(10);
     gpio_pin_set_dt(&rst, 0);
-    k_msleep(100);
+    k_msleep(10);
     gpio_pin_set_dt(&rst, 1);
 }
 
-void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) // why are these u16?
+void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
     sendCommand(0x2a);
     sendData(x1);
@@ -110,7 +116,6 @@ void LCD_Address_Set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) // why 
     sendCommand(0x2b);
     sendData(y1);
     sendData(y2);
-    sendCommand(0x2c);
 }
 
 int initDisplay()
@@ -210,44 +215,39 @@ int initDisplay()
     sendData(0x01);
 
     sendCommand(0xC0); // Gate Voltage Setting VGH=12V ; VGL=-5V
-    sendData(0x11);
-    sendData(0x04);
+    sendData(0x0E);
+    sendData(0x05);
 
     sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
+    sendData(0X41);    // VSHP1 = 5V
     sendData(0X41);
     sendData(0X41);
     sendData(0X41);
 
     sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
+    sendData(0x32);    // VSLP1 = 1V
+    sendData(0x32);
+    sendData(0x32);
+    sendData(0x32);
 
     sendCommand(0XC4); // VSHN Setting
-    sendData(0X41);    // VSHN1=-3.8V
-    sendData(0X41);    // VSHN2=-3.8V
-    sendData(0X41);    // VSHN3=-3.8V
-    sendData(0X41);    // VSHN4=-3.8V
+    sendData(0x4B);    // VSHN = -4V
+    sendData(0x4B);
+    sendData(0x4B);
+    sendData(0x4B);
 
     sendCommand(0XC5); // VSLN Setting
-    sendData(0X19);    // VSLN1=0.5V
-    sendData(0X19);    // VSLN2=0.5V
-    sendData(0X19);    // VSLN3=0.5V
-    sendData(0X19);    // VSLN4=0.5V
+    sendData(0x00);    // VSLN1=0v
+    sendData(0x00);
+    sendData(0x00);
+    sendData(0x00);
 
     sendCommand(0XD8); // OSC Setting
-    sendData(0XA6);
+    sendData(0XA6);    // HPM = 32Hz
     sendData(0XE9);
 
-    //    sendCommand(0xCB);//VCOMH Setting
-    //    sendData(0x14);//14  0C   7
-
     sendCommand(0XB2); // Frame Rate Control
-    sendData(0X02);    // HPM=16hz ; LPM=8hz
-    // 0x15 for High Frame Rate mode
-    // This should be live configurable. Find out what's going on here
+    sendData(0X02);    // HPM=32hz ; LPM = 0.5hz
 
     sendCommand(0XB3); // Update Period Gate EQ Control in HPM
     sendData(0XE5);    // Gate EQ on
@@ -271,22 +271,22 @@ int initDisplay()
     sendData(0X76);
     sendData(0X45);
 
-    sendCommand(0X62); // Gate Timing Control
-    sendData(0X32);
-    sendData(0X03);
-    sendData(0X1F);
-
     sendCommand(0XB7); // Source EQ Enable
     sendData(0X13);
 
     sendCommand(0xB0); // Duty Setting
-    sendData(0x64);    // 250duty/4=63
+    sendData(0x3F);    // ~~250duty/4=63~~ // 252 line
 
     sendCommand(0x11); // Sleep out
-    k_msleep(100);     // delay_ms 100ms
+    k_msleep(120);
 
     sendCommand(0XC9); // Source Voltage Select
     sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
+
+    sendCommand(0xC7);
+    sendData(0xC1);
+    sendData(0x41);
+    sendData(0x26);
 
     sendCommand(0x36); // Memory Data Access Control
     if (USE_HORIZONTAL == 0)
@@ -297,22 +297,23 @@ int initDisplay()
     {
         sendData(0x4C);
     }
+    // sendData(0x00);
 
     sendCommand(0x3A); // Data Format Select 4 write for 24 bit
     sendData(0x11);
     sendCommand(0xB9); // Source Setting
     sendData(0x20);
     sendCommand(0xB8); // Panel Setting Frame inversion
-    sendData(0x29);
+    sendData(0x29);    // prev 0x29
 
     sendCommand(0x21); // Display inversion on (0x20 for off)
 
-    // sendCommand(0x2A);////Column Address Setting S61~S182
-    // sendData(0x05);
-    // sendData(0x36);
-    // sendCommand(0x2B);////Row Address Setting G1~G250
-    // sendData(0x00);
-    // sendData(0xC7);
+    sendCommand(0x2A); // Column Address Setting S61~S182
+    sendData(0x19);
+    sendData(0x23);
+    sendCommand(0x2B); // Row Address Setting G1~G250
+    sendData(0x00);
+    sendData(0x7C);
 
     sendCommand(0X35); // TE
     sendData(0X00);
@@ -320,11 +321,19 @@ int initDisplay()
     sendCommand(0xD0);
     sendData(0xFF);
 
+    // sendCommand(0X62); // Gate Timing Control
+    // sendData(0X32);
+    // sendData(0X03);
+    // sendData(0X1F);
+
+    sendCommand(0x38); // HPM
     sendCommand(0x29); // Display on
 
-    // sendCommand(0x39); // LPM
-
     k_msleep(120);
+
+    LCD_Address_Set(25, 0, 35, 124);
+    sendCommand(0x2C);
+
     return 0;
 }
 
@@ -343,9 +352,12 @@ int initDisplay()
 //     }
 // }
 
-void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer) // 2308ms
+K_MUTEX_DEFINE(display_transfer_mutex);
+
+void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const unsigned char *frame_buffer)
 {
     // int64_t start_time = k_uptime_get();
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
 
     struct spi_buf tx_buf = {
         .buf = (void *)frame_buffer,
@@ -353,14 +365,14 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
     struct spi_buf_set tx_bufs = {
         .buffers = &tx_buf,
         .count = 1};
-
-    LCD_Address_Set(25, 0, 35, 124);
-
+    
+    // sendCommand(0x2C); // Know no fear.
     // int64_t duration = k_uptime_get() - start_time;
     gpio_pin_set_dt(&cs, 1);
     spi_write(spi_dev, &spi_cfg, &tx_bufs);
     gpio_pin_set_dt(&cs, 0);
 
+    k_mutex_unlock(&display_transfer_mutex);
     // duration = k_uptime_get() - start_time;
     // printf("LCD frame took: %lld ms\n", duration);
 }
@@ -369,91 +381,70 @@ void Display(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, const u
 #define ST7305_CMD_LPM 0x39    /* Low Power Mode ON   (§8.1.23) */
 #define ST7305_CMD_FRCTRL 0xB2 /* Frame Rate Control  (§8.2.3)  */
 
-// HPM framerates work fine
-// LPM framerates seem to be stuck at 8Hz
-// Maybe due to voltage settings?? but i have no fucking clue Tbh (┬┬﹏┬┬)
+bool hpm_enabled = true;
 
-void enterLPM()
+// HPM and LPM have a different sequence specified in the datasheet, but this seems faster （￣︶￣）↗　
+void enterLPM(void)
 {
-    printk("ST7305: entering lpm");
-    sendCommand(ST7305_CMD_HPM);
-    // Got these values for C1,C2,C4,C5,C9 from the ST7305 V1.2 datasheet, since it said in its initialization code that it should be 1Hz. so thought they were correct for LPM, but seems not to have resolved the issue.
-    sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
-    sendData(0X41);
-    sendData(0X41);
-    sendData(0X41);
-
-    sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x32);
-    sendData(0x32);
-    sendData(0x32);
-    sendData(0x32);
-
-    sendCommand(0XC4); // VSHN Setting
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-
-    sendCommand(0XC5); // VSLN Setting
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-    sendData(0X46);
-
-    sendCommand(0XC9); // Source Voltage Select
-    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
-
-    k_msleep(20);
-
-    sendCommand(ST7305_CMD_LPM);
-
-    k_msleep(100);
-}
-
-void enterHPM()
-{
-    printk("ST7305: entering hpm");
-    sendCommand(0x39);
-    sendCommand(0x38);
-
-    k_msleep(300);
-
-    sendCommand(0xC1); // VSH Setting
-    sendData(0X41);    //
-    sendData(0X41);
-    sendData(0X41);
-    sendData(0X41);
-
-    sendCommand(0xC2); // VSL Setting VSL=0
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-    sendData(0x19);
-
-    sendCommand(0XC4); // VSHN Setting
-    sendData(0X41);    // VSHN1=-3.8V
-    sendData(0X41);    // VSHN2=-3.8V
-    sendData(0X41);    // VSHN3=-3.8V
-    sendData(0X41);    // VSHN4=-3.8V
-
-    sendCommand(0XC5); // VSLN Setting
-    sendData(0X19);    // VSLN1=0.5V
-    sendData(0X19);    // VSLN2=0.5V
-    sendData(0X19);    // VSLN3=0.5V
-    sendData(0X19);    // VSLN4=0.5V
-
-    sendCommand(0XC9); // Source Voltage Select
-    sendData(0X00);    // VSHP1; VSLP1 ; VSHN1 ; VSLN1
-
-    k_msleep(20);
-}
-
-int setFPS(int fps)
-{
-    if (fps == 1600) // 16Hz
+    if (hpm_enabled)
     {
+        sendCommand(ST7305_CMD_LPM);
+        LCD_Address_Set(25, 0, 35, 124);
+        hpm_enabled = false;
+    }
+}
+
+void enterHPM(void)
+{
+    if (!hpm_enabled)
+    {
+        sendCommand(ST7305_CMD_HPM);
+        LCD_Address_Set(25, 0, 35, 124);
+        hpm_enabled = true;
+    }
+}
+
+int setFPS(uint16_t fps)
+{
+    k_mutex_lock(&display_transfer_mutex, K_FOREVER);
+    if (fps == 25)
+    { // 0.25Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB0);
+    }
+    if (fps == 50)
+    { // 0.5Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB1);
+    }
+    if (fps == 100)
+    { // 1Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB2);
+    }
+    if (fps == 200)
+    { // 2Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB3);
+    }
+    if (fps == 400)
+    { // 4Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB4);
+    }
+    if (fps == 800)
+    { // 8Hz
+        enterLPM();
+        sendCommand(ST7305_CMD_FRCTRL);
+        sendData(0xB5);
+    }
+    if (fps == 1600)
+    { // 16Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -463,8 +454,8 @@ int setFPS(int fps)
         sendData(0xA6);
         sendData(0xE9);
     }
-    if (fps == 2550) // 25.5Hz
-    {
+    if (fps == 2550)
+    { // 25.5Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -474,8 +465,8 @@ int setFPS(int fps)
         sendData(0x80);
         sendData(0xE9);
     }
-    if (fps == 3200) // 32Hz
-    {
+    if (fps == 3200)
+    { // 32Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -485,8 +476,8 @@ int setFPS(int fps)
         sendData(0xA6);
         sendData(0xE9);
     }
-    if (fps == 5100) // 51Hz
-    {
+    if (fps == 5100)
+    { // 51Hz
         enterHPM();
 
         sendCommand(ST7305_CMD_FRCTRL);
@@ -496,5 +487,10 @@ int setFPS(int fps)
         sendData(0x80);
         sendData(0xE9);
     }
-    // no return on a functio nthat returns int. silly goose. you need that or it gets upset!
+
+    // LCD_Address_Set(25, 0, 35, 124);
+    sendCommand(0x2c);
+    
+    k_mutex_unlock(&display_transfer_mutex);
+    return 0;
 }

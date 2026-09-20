@@ -2,7 +2,7 @@
 Furrydex is like a "pokedex" for furries! Use it to know when other furrydex owners are nearby, and add furries to your furrydex by tapping two furrydexes together.
 
 It's also a versatile hardware platform, for whatever you might want that for :3c
-Currently, this is very early in development. It will be a *while* until its usable!
+Currently, this is early in development. It will be a while until its usable!
 
 ## Planned features are:
 - [x] - 122x250 monochrome LCD screen (Should also support e-paper for DIY, since that is more easily accessible.)
@@ -28,6 +28,7 @@ The price target is 50USD or lower.
 It's not complete yet, but if you want to help development then yes!
 
 Reccomended IDE for this is VSCode, since that's the officially used one for the nRF series.
+SDK Version: 3.4.0
 
 You'll need the nRF Connect extension, opening this repo with that and opening the extension tab should allow you to add a build configuration.
 

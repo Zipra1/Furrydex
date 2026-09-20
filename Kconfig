@@ -129,7 +129,7 @@ endmenu
 menu "Lua options"
 config LUA_HEAP_SIZE
 	int "How much memory to be allocated to Lua"
-	default 118784
+	default 106496
 	help
 	  How much memory to be allocated to Lua's heap
 
@@ -145,6 +145,16 @@ config LUA_THREAD_STACK_SIZE
 	help
 	  How much memory to be allocated to each Lua thread.
 
+endmenu
+
+menu "BLE defaults"
+	depends on BT
+
+config BLE_DEFAULT_COMPANY_ID
+	hex "Default company ID used for BLE advertizements"
+	default 0x3639
+	help
+	  Default company ID used for BLE advertizements.
 endmenu
 
 menu "USB sample options"

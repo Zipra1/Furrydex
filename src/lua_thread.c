@@ -6,6 +6,7 @@
 
 #include "lua_thread.h"
 #include "ui.h"
+#include "radio/radio.h"
 
 /*
 ⚠ This file was produced with generative ai.
@@ -23,6 +24,7 @@ extern int lua_sleep_ms(lua_State *L);
 extern int luaopen_paint(lua_State *L);
 extern int luaopen_input(lua_State *L);
 extern int luaopen_shell(lua_State *L);
+extern int luaopen_ble(lua_State *L);
 
 static uint8_t lua_alloc_pool[CONFIG_LUA_HEAP_SIZE];
 static struct k_heap lua_heap;
@@ -82,6 +84,15 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     slot->hide_top = false;
     slot->hide_bottom = false;
     slot->in_tray = false;
+    slot->ble_enabled = false;
+    atomic_set(&slot->ble_fifo_depth, -1);
+    if (slot->advertizement != NULL)
+    {
+        bt_le_ext_adv_stop(slot->advertizement);
+        bt_le_ext_adv_delete(slot->advertizement);
+        printk("BLE advertizing stopped");
+    }
+    slot->advertizement = NULL;
 }
 
 int lua_thread_update_priorities(int selected_slot)
@@ -210,6 +221,8 @@ static void lua_thread_entry(void *a, void *b, void *c)
     lua_setfield(state, -2, "input");
     lua_pushcfunction(state, luaopen_shell);
     lua_setfield(state, -2, "shell");
+    lua_pushcfunction(state, luaopen_ble);
+    lua_setfield(state, -2, "ble");
     // lua_pushcfunction(state, luaopen_zephyr);
     // lua_setfield(state, -2, "zephyr");
     lua_pop(state, 1);
@@ -243,6 +256,19 @@ static void lua_thread_entry(void *a, void *b, void *c)
     slot->shell = NULL;
     slot->in_use = false;
     lua_thread_refresh_ui_state();
+
+    int stop_scan = true;
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
+    {
+        if (lua_slots[i].ble_enabled == true)
+        {
+            stop_scan = false;
+        }
+    }
+    if (stop_scan)
+    {
+        ble_scan_stop();
+    }
 }
 int num_lua_threads = 0;
 int num_shown_lua_threads = 0;
@@ -251,6 +277,7 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
 {
     if (strlen(name) > LUA_THREAD_MAX_NAME_LEN)
     {
+        printk("Lua thread couldnt start, name too long!");
         return -ENOMEM;
     }
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
