@@ -151,8 +151,8 @@ menu "BLE defaults"
 	depends on BT
 
 config BLE_DEFAULT_COMPANY_ID
-	hex "Default company ID used for BLE advertizements"
-	default 0x3639
+	string "Default company ID used for BLE advertizements"
+	default "MP"
 	help
 	  Default company ID used for BLE advertizements.
 endmenu

@@ -828,10 +828,16 @@ int lua_ble_event_get(lua_State *L)
 int lua_ble_advertizing_start(lua_State *L)
 {
     signed char own_slot = get_current_lua_slot();
-    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+    ble_adv_stop(&lua_slots[own_slot].advertizement);
     const char *payload = luaL_checkstring(L, 1);
     uint32_t interval_min = luaL_optinteger(L, 2, 1000);
     uint32_t interval_max = luaL_optinteger(L, 3, 1200);
+    size_t company_id_len;
+    const char *company_id = luaL_optlstring(L, 4, CONFIG_BLE_DEFAULT_COMPANY_ID, &company_id_len);
+    if (company_id_len != 2){
+        printk("Error setting BLE company id. Please provide only 2 bytes of data!");
+        company_id = CONFIG_BLE_DEFAULT_COMPANY_ID;
+    }
 
     if (interval_min < 20)
     {
@@ -856,8 +862,8 @@ int lua_ble_advertizing_start(lua_State *L)
 
     int ret;
 
-    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID >> 8;
-    mfg_data[mfg_len++] = CONFIG_BLE_DEFAULT_COMPANY_ID & 0xFF;
+    mfg_data[mfg_len++] = company_id[0];
+    mfg_data[mfg_len++] = company_id[1];
 
     unsigned char payload_len = strlen(payload);
     for (unsigned char i = 0; i < payload_len; i++)
@@ -890,13 +896,14 @@ int lua_ble_advertizing_start(lua_State *L)
 int lua_ble_advertizing_stop(lua_State *L)
 {
     signed char own_slot = get_current_lua_slot();
-    streetpass_adv_stop(&lua_slots[own_slot].advertizement);
+    ble_adv_stop(&lua_slots[own_slot].advertizement);
     return 0;
 }
 
 static const luaL_Reg ble_funcs[] = {
     {"scan", lua_ble_event_get},
     {"advertize", lua_ble_advertizing_start},
+    {"advertize_stop",lua_ble_advertizing_stop},
     {NULL, NULL},
 };
 

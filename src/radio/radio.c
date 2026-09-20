@@ -197,7 +197,7 @@ int ble_adv_start(struct bt_le_adv_param *adv_param, struct bt_le_ext_adv **ble_
     return 0;
 }
 
-int streetpass_adv_stop(struct bt_le_ext_adv **ble_adv)
+int ble_adv_stop(struct bt_le_ext_adv **ble_adv)
 {
     if (ble_adv == NULL || *ble_adv == NULL)
     {
@@ -206,5 +206,6 @@ int streetpass_adv_stop(struct bt_le_ext_adv **ble_adv)
     bt_le_ext_adv_stop(*ble_adv);
     bt_le_ext_adv_delete(*ble_adv);
     *ble_adv = NULL;
+    printk("BLE advertizing stopped\n");
     return 0;
 }
