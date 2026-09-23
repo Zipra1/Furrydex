@@ -13,6 +13,8 @@
 typedef struct {
     struct k_thread thread;
     char *script;
+    char **args;
+    size_t arg_count;
     const struct shell *shell;
     bool in_use;
     bool been_started;
@@ -40,7 +42,7 @@ extern atomic_t visible_slot_index;
 extern int num_lua_threads;
 extern int num_shown_lua_threads;
 
-int lua_thread_start(const struct shell *shell, char *script, char *name);
+int lua_thread_start(const struct shell *shell, char *script, char *name, size_t arg_count, char **args);
 int lua_thread_kill(int slot);
 int get_current_lua_slot(void);
 int lua_thread_update_priorities(int selected_slot);

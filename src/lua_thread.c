@@ -96,6 +96,33 @@ static void lua_thread_reset_slot_state(lua_thread_slot_t *slot)
     // slot->advertizement = NULL;
 }
 
+static void lua_thread_free_args(lua_thread_slot_t *slot)
+{
+    if (slot->args == NULL)
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < slot->arg_count; i++)
+    {
+        free(slot->args[i]);
+    }
+    free(slot->args);
+    slot->args = NULL;
+    slot->arg_count = 0;
+}
+
+static void lua_thread_set_args(lua_State *state, lua_thread_slot_t *slot)
+{
+    lua_createtable(state, slot->arg_count, 0);
+    for (size_t i = 0; i < slot->arg_count; i++)
+    {
+        lua_pushstring(state, slot->args[i]);
+        lua_rawseti(state, -2, (lua_Integer)i);
+    }
+    lua_setglobal(state, "arg");
+}
+
 int lua_thread_update_priorities(int selected_slot)
 {
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
@@ -224,11 +251,11 @@ static void lua_thread_entry(void *a, void *b, void *c)
     lua_setfield(state, -2, "shell");
     lua_pushcfunction(state, luaopen_ble);
     lua_setfield(state, -2, "ble");
-    // lua_pushcfunction(state, luaopen_zephyr);
-    // lua_setfield(state, -2, "zephyr");
     lua_pop(state, 1);
 
     lua_thread_update_priorities(atomic_get(&selected_page));
+
+    lua_thread_set_args(state, slot);
 
     int err = luaL_loadstring(state, slot->script);
     if (err)
@@ -252,6 +279,7 @@ static void lua_thread_entry(void *a, void *b, void *c)
 
     lua_close(state);
     lua_thread_reset_slot_state(slot);
+    lua_thread_free_args(slot);
     free(slot->script);
     slot->script = NULL;
     slot->shell = NULL;
@@ -274,7 +302,7 @@ static void lua_thread_entry(void *a, void *b, void *c)
 int num_lua_threads = 0;
 int num_shown_lua_threads = 0;
 
-int lua_thread_start(const struct shell *shell, char *script, char *name)
+int lua_thread_start(const struct shell *shell, char *script, char *name, size_t arg_count, char **args)
 {
     if (strlen(name) > LUA_THREAD_MAX_NAME_LEN)
     {
@@ -290,6 +318,22 @@ int lua_thread_start(const struct shell *shell, char *script, char *name)
                 k_thread_join(&lua_slots[i].thread, K_FOREVER); // is this necessary?
             }
             lua_slots[i].script = script;
+            lua_slots[i].args = calloc(arg_count, sizeof(*lua_slots[i].args));
+            if (arg_count > 0 && lua_slots[i].args == NULL)
+            {
+                return -ENOMEM;
+            }
+            for (size_t arg_index = 0; arg_index < arg_count; arg_index++)
+            {
+                lua_slots[i].args[arg_index] = strdup(args[arg_index]);
+                if (lua_slots[i].args[arg_index] == NULL)
+                {
+                    lua_slots[i].arg_count = arg_index;
+                    lua_thread_free_args(&lua_slots[i]);
+                    return -ENOMEM;
+                }
+            }
+            lua_slots[i].arg_count = arg_count;
             lua_slots[i].shell = shell;
             lua_slots[i].in_use = true;
             lua_slots[i].been_started = true;

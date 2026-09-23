@@ -1,0 +1,5 @@
+[shortcut]
+; where is the file that the shortcut needs to open
+path = /SD:/path/to/file.lua 
+; exec will override the default execution command (run %path%), optional
+exec = lua_lf %path%

@@ -126,9 +126,9 @@ extern lua_State *L;
 
 void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
 {
-    if (argc != 2)
+    if (argc < 2)
     {
-        shell_print(shell, "Invalid # of arguments %i", argc);
+        shell_print(shell, "Usage: lua_lf <file> [arguments ...]");
         return;
     }
 
@@ -149,7 +149,7 @@ void cmd_lua_loadfile(const struct shell *shell, size_t argc, char **argv)
     fs_read(&init, script, size);
     fs_close(&init);
 
-    int slot = lua_thread_start(shell, script, argv[1]);
+    int slot = lua_thread_start(shell, script, argv[1], argc - 1, &argv[1]);
     if (slot < 0)
     {
         shell_print(shell, "Max concurrent Lua scripts (%d) already running.", CONFIG_LUA_MAX_THREADS);
