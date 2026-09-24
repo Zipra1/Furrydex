@@ -198,7 +198,7 @@ const char *get_file_extension(const char *filename)
     return dot + 1; // +1 removes dot
 }
 
-void find_associated(const char *input, const char *target, char *out, size_t out_size)
+void ini_key_to_value(const char *input, const char *target, char *out, size_t out_size)
 {
     if (out_size == 0)
     {

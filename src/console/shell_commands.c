@@ -167,7 +167,7 @@ void cmd_open(const struct shell *shell, size_t argc, char **argv)
     fs_close(&file_to_open);
 
     char associate[256];
-    find_associated(associations, get_file_extension(argv[1]), associate, sizeof(associate));
+    ini_key_to_value(associations, get_file_extension(argv[1]), associate, sizeof(associate));
     free(associations);
 
     replace_word(associate, sizeof(associate), "%path%", argv[1]);
