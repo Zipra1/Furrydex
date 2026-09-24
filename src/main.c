@@ -151,6 +151,43 @@ void screen_log(char *log)
     Display(25, 0, 36, 125, output_buffer);
 }
 
+int setup_configs()
+{
+    struct fs_file_t data_filp;
+    struct fs_dirent entry;
+    int ret;
+    fs_file_t_init(&data_filp);
+
+    ret = fs_stat("/SD:/config/file_associations.ini", &entry);
+    if (ret == 0)
+    {
+        return 0;
+    }
+
+    ret = fs_mkdir("/SD:/config");
+    if (ret != 0 && ret != -EEXIST)
+    {
+        printk("%s -- failed to create config directory (err = %d)\n", __func__, ret);
+        return -3;
+    }
+
+    ret = fs_open(&data_filp, "/SD:/config/file_associations.ini", FS_O_WRITE | FS_O_CREATE);
+    if (ret)
+    {
+        printk("%s -- failed to create file (err = %d)\n", __func__, ret);
+        return -2;
+    }
+    else
+    {
+        printk("%s - successfully created file\n", __func__);
+    }
+
+    char file_data_buffer[200];
+    sprintf(file_data_buffer, "[lua]\nexec = lua_lf %%path%%\n[bmp]\nexec = lua_lf /SD:/programs/image_viewer.lua %%path%%\n[txt]\nexec = lua_lf /SD:/programs/text_viewer.lua %%path%%\n[fdl]\nexec = shortcut_run %%path%%!\n");
+    ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
+    fs_close(&data_filp);
+}
+
 int main(void)
 {
     int ret;
@@ -190,28 +227,8 @@ int main(void)
         printk("Successfully mounted SD card\n");
         screen_log("SD card mounted");
 
-        struct fs_file_t data_filp;
-        fs_file_t_init(&data_filp);
-
-        ret = fs_unlink("/SD:/test_data.txt");
-
-        ret = fs_open(&data_filp, "/SD:/test_data.txt", FS_O_WRITE | FS_O_CREATE);
-        if (ret)
-        {
-            printk("%s -- failed to create file (err = %d)\n", __func__, ret);
-            return -2;
-        }
-        else
-        {
-            printk("%s - successfully created file\n", __func__);
-        }
-
-        char file_data_buffer[200];
-        sprintf(file_data_buffer, "hello world!\n");
-        ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
-        fs_close(&data_filp);
-
-        screen_log("Test file created");
+        setup_configs();
+        screen_log("Setup configs");
 
         // bool force = true;
         // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);

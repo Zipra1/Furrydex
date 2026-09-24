@@ -188,6 +188,54 @@ int lsdir(const char *path, lsdir_result_t *result)
     return res;
 }
 
+const char *get_file_extension(const char *filename)
+{
+    const char *dot = strrchr(filename, '.');
+    if (!dot || dot == filename)
+    {
+        return "";
+    }
+    return dot + 1; // +1 removes dot
+}
+
+void find_associated(const char *input, const char *target, char *out, size_t out_size)
+{
+    if (out_size == 0)
+    {
+        return;
+    }
+    out[0] = '\0';
+
+    char *associate = strstr(input, target);
+    if (associate == NULL)
+    {
+        return;
+    }
+
+    char *equals_pointer = strchr(associate, '=');
+    if (equals_pointer == NULL)
+    {
+        return; // no '=' found; nothing to extract
+    }
+
+    char *value_start = equals_pointer + 1;
+    while (*value_start == ' ')
+    {
+        value_start++;
+    }
+
+    char *line_end = strchr(value_start, '\n');
+    size_t len = (line_end != NULL) ? (size_t)(line_end - value_start) : strlen(value_start);
+
+    if (len >= out_size)
+    {
+        len = out_size - 1;
+    }
+
+    memcpy(out, value_start, len);
+    out[len] = '\0';
+}
+
 int mount_sd_card(void)
 {
     /* raw disk i/o */

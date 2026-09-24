@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/shell/shell_uart.h>
 #include <zephyr/sys/atomic.h>
 #include <stdio.h>
 #include <string.h>
@@ -94,6 +95,89 @@ static int cmd_meow(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_CMD_REGISTER(meow, NULL, "Ping but kitty", cmd_meow);
+
+void replace_word(char *input, size_t buf_size, const char *old_word, const char *new_word)
+{
+    size_t input_len = strlen(input);
+    size_t old_len = strlen(old_word);
+    size_t new_len = strlen(new_word);
+
+    char *pos = input;
+    while ((pos = strstr(pos, old_word)) != NULL)
+    {
+        size_t prefix_len = pos - input;
+        size_t tail_len = input_len - (prefix_len + old_len); // (excludes \0)
+
+        size_t new_total_len = prefix_len + new_len + tail_len;
+        if (new_total_len >= buf_size)
+        {
+            printk("Error associating file: Filepath too long!");
+            return;
+        }
+
+        memmove(pos + new_len, pos + old_len, tail_len + 1); // +1 to include '\0'
+        memcpy(pos, new_word, new_len);
+
+        input_len = new_total_len;
+        pos = pos + new_len;
+    }
+}
+
+void cmd_open(const struct shell *shell, size_t argc, char **argv)
+{
+    if (argc < 2)
+    {
+        shell_print(shell, "Usage: open <file> [arguments ...]");
+        return;
+    }
+
+    struct fs_file_t associations_config_file;
+    fs_file_t_init(&associations_config_file);
+
+    if (0 != fs_open(&associations_config_file, "/SD:/config/file_associations.ini", FS_O_READ))
+    {
+        shell_print(shell, "Could not open associations file at /SD:/config/file_associations.ini"); // Hi - bobilka
+        return;
+    }
+
+    fs_seek(&associations_config_file, 0, FS_SEEK_END);
+    size_t size = fs_tell(&associations_config_file);
+    char *associations = malloc(size + 1);
+    associations[size] = 0;
+    fs_seek(&associations_config_file, 0, FS_SEEK_SET);
+    fs_read(&associations_config_file, associations, size);
+    fs_close(&associations_config_file);
+
+    struct fs_file_t file_to_open;
+    fs_file_t_init(&file_to_open);
+
+    if (0 != fs_open(&file_to_open, argv[1], 1))
+    {
+        shell_print(shell, "Could not open file %s", argv[1]);
+        free(associations);
+        return;
+    }
+
+    fs_seek(&file_to_open, 0, FS_SEEK_END);
+    size = fs_tell(&file_to_open);
+    char *script = malloc(size + 1);
+    script[size] = 0;
+    fs_seek(&file_to_open, 0, FS_SEEK_SET);
+    fs_read(&file_to_open, script, size);
+    fs_close(&file_to_open);
+
+    char associate[256];
+    find_associated(associations, get_file_extension(argv[1]), associate, sizeof(associate));
+    free(associations);
+
+    replace_word(associate, sizeof(associate), "%path%", argv[1]);
+
+    const struct shell *sh = shell_backend_uart_get_ptr();
+    shell_execute_cmd(sh, associate);
+
+    free(script);
+}
+SHELL_CMD_REGISTER(open, NULL, "Open a file. Usage: open <file> [arguments ...]", cmd_open);
 
 static int cmd_reboot(const struct shell *sh, size_t argc, char **argv)
 {
@@ -235,7 +319,7 @@ static int cmd_paint_circle(const struct shell *sh, size_t argc, char **argv)
 
 SHELL_STATIC_SUBCMD_SET_CREATE(paint_cmds,
                                SHELL_CMD_ARG(circle, NULL, "Paint a filled circle <x> <y> <r> <c>", cmd_paint_circle, 5, 0),
-                               //SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
+                               // SHELL_CMD_ARG(bubbles, NULL, "Paint page bubbles <num> <selected>", cmd_paint_bubbles, 3, 0),
                                SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(paint, &paint_cmds, "Manually paint to the display buffer", NULL);
 
@@ -314,7 +398,7 @@ static int cmd_fps(const struct shell *sh, size_t argc, char **argv)
 
     uint16_t fps = atoi(argv[1]);
 
-    shell_print(sh, "ST7305 SH: Setting FPS to %d", (fps/100));
+    shell_print(sh, "ST7305 SH: Setting FPS to %d", (fps / 100));
     setFPS(fps);
     return 0;
 }
