@@ -183,7 +183,7 @@ int setup_configs()
     }
 
     char file_data_buffer[200];
-    sprintf(file_data_buffer, "[lua]\nexec = lua_lf %%path%%\n[bmp]\nexec = lua_lf /SD:/programs/image_viewer.lua %%path%%\n[txt]\nexec = lua_lf /SD:/programs/text_viewer.lua %%path%%\n[fdl]\nexec = shortcut_run %%path%%!\n");
+    snprintf(file_data_buffer, sizeof(file_data_buffer), "[file_associations]\nlua = lua_lf %%path%%\nbmp = lua_lf /SD:/programs/image_viewer.lua %%path%%\ntxt = lua_lf /SD:/programs/text_viewer.lua %%path%%\nfdl = open_fdl %%path%%");
     ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
     fs_close(&data_filp);
 }
