@@ -28,6 +28,7 @@
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
 #include <ff.h>
+#include <zephyr/random/random.h>
 
 #include <zephyr/drivers/uart.h>
 #include <zephyr/usb/usbd.h>
@@ -169,7 +170,7 @@ int setup_configs()
     {
         printk("%s -- failed to create config directory (err = %d)\n", __func__, ret);
         return -3;
-    } 
+    }
 
     ret = fs_open(&data_filp, "/SD:/config/file_associations.ini", FS_O_WRITE | FS_O_CREATE);
     if (ret)
@@ -245,6 +246,21 @@ int main(void)
     }
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
+
+    k_msleep(300); // probably there is a better way to get the banner to show lol
+    uint8_t random = sys_rand8_get();
+    const char *splash_text[] = {
+        "What do you mean it's just Zephyr?",
+        "Finally, an OS for fuzzies",
+        "mreooraoeomreaoomewo moewww",
+        "hi i love you - your computer",
+        "<3",
+        "OwO whats this?cough.hack. Im so sorry.",
+        "Help me! Im stuck in your computer!"
+    };
+    printk(FUROS_BANNER);
+    printk("Version α - %s %s | \"%s\"\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);
+
     while (true)
     {
         draw_ui();

@@ -133,10 +133,10 @@ void cmd_open(const struct shell *shell, size_t argc, char **argv)
     }
 
     char associate[256];
-    int ret = ini_key_to_value(CONFIG_LOCATION_FILE_ASSOCIATIONS, get_file_extension(argv[1]), associate, sizeof(associate));
+    int ret = ini_key_to_value(FS_FILE_ASSOCIATON_CONFIG_PATH, get_file_extension(argv[1]), associate, sizeof(associate));
     if (ret != 0)
     {
-        printk("cmd_open ini_key_to_value failed for %s, rc=%d\n", CONFIG_LOCATION_FILE_ASSOCIATIONS, ret);
+        printk("cmd_open ini_key_to_value failed for %s, rc=%d\n", FS_FILE_ASSOCIATON_CONFIG_PATH, ret);
         return;
     }
 
