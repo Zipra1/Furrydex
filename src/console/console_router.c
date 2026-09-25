@@ -39,6 +39,7 @@ static const char *const known_commands[] = {
     "hpm",
     "fps",
     "open",
+    "open_fdl",
     NULL,
 };
 

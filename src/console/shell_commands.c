@@ -179,6 +179,18 @@ void cmd_open(const struct shell *shell, size_t argc, char **argv)
 }
 SHELL_CMD_REGISTER(open, NULL, "Open a file. Usage: open <file> [arguments ...]", cmd_open);
 
+void cmd_open_fdl(const struct shell *shell, size_t argc, char **argv)
+{
+    if (argc != 2)
+    {
+        shell_print(shell, "Usage: open <file>");
+        return;
+    }
+
+    openfile_fdl(argv[1]);
+}
+SHELL_CMD_REGISTER(open_fdl, NULL, "Open an FDL (shortcut) file. Usage: open <file>", cmd_open_fdl);
+
 static int cmd_reboot(const struct shell *sh, size_t argc, char **argv)
 {
     ARG_UNUSED(argc);

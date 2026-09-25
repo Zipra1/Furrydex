@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <zephyr/shell/shell_uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h> //        _     _ __   ______           _____________________╲ 
@@ -234,6 +235,35 @@ void ini_key_to_value(const char *input, const char *target, char *out, size_t o
 
     memcpy(out, value_start, len);
     out[len] = '\0';
+}
+
+void openfile_fdl(const char *input){
+    struct fs_file_t fdl_file;
+    fs_file_t_init(&fdl_file);
+
+    if (0 != fs_open(&fdl_file, input, FS_O_READ))
+    {
+        printk("Could not open file at %s", input);
+        return;
+    }
+
+    fs_seek(&fdl_file, 0, FS_SEEK_END);
+    size_t size = fs_tell(&fdl_file);
+    char *fdl = malloc(size + 1);
+    fdl[size] = 0;
+    fs_seek(&fdl_file, 0, FS_SEEK_SET);
+    fs_read(&fdl_file, fdl, size);
+    fs_close(&fdl_file);
+
+    char cmd[128];
+    memcpy(cmd, "open ", 5);
+    char *value = cmd+5;
+    ini_key_to_value(fdl, "path", value, sizeof(cmd)-5);
+
+    const struct shell *sh = shell_backend_uart_get_ptr();
+    shell_execute_cmd(sh, cmd);
+
+    free(fdl);
 }
 
 int mount_sd_card(void)
