@@ -64,7 +64,7 @@ static int cmd_page_get(const struct shell *sh, size_t argc, char **argv)
 
     lua_thread_slot_t *slot = &lua_slots[selected];
     shell_print(sh,
-                "slot=%d\nin_use=%d\nin_tray=%d\nhide_top=%d\nhide_bottom=%d\ncapture_input=%d\nkill_requested=%d\nhas_icon=%d\npriority=%d\nname=%s\ncurrent visible slot=%d",
+                "slot=%d\nin_use=%d\nin_tray=%d\nhide_top=%d\nhide_bottom=%d\ncapture_input=%d\nkill_requested=%d\nhas_icon=%d\npriority=%d\nname=%s\ncurrent visible slot=%ld",
                 selected,
                 slot->in_use,
                 slot->in_tray,

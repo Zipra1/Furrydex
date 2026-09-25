@@ -71,6 +71,7 @@ int ble_scan_start(void)
     {
         printk("ble: Failed to start BLE scan: %d\n", ret);
     }
+    return ret;
 }
 
 int ble_scan_stop(void)

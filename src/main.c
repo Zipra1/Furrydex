@@ -186,6 +186,7 @@ int setup_configs()
     snprintf(file_data_buffer, sizeof(file_data_buffer), "[file_associations]\nlua = lua_lf %%path%%\nbmp = lua_lf /SD:/programs/image_viewer.lua %%path%%\ntxt = lua_lf /SD:/programs/text_viewer.lua %%path%%\nfdl = open_fdl %%path%%");
     ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
     fs_close(&data_filp);
+    return 0;
 }
 
 int main(void)

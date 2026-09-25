@@ -294,7 +294,7 @@ int ini_key_to_value(const char *path, const char *key, char *value, size_t valu
                 if (ini_match_keyvalue_line(line, line_len, key, key_len, value, value_size))
                 {
                     result = 0;
-                    goto done;
+                    goto ini_key_to_value_done;
                 }
                 line_len = 0;
             }
@@ -314,7 +314,7 @@ int ini_key_to_value(const char *path, const char *key, char *value, size_t valu
         result = 0;
     }
 
-done:
+ini_key_to_value_done:
     fs_close(&file);
     return result;
 }

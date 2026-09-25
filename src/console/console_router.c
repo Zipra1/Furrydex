@@ -78,20 +78,6 @@ static void console_cmd_thread(void *p1, void *p2, void *p3)
     }
 }
 
-struct cmd_work_item
-{
-    struct k_work work;
-    const struct shell *sh;
-    char line[LUA_SERIAL_MSG_SIZE];
-};
-static struct cmd_work_item cmd_work;
-
-static void run_queued_command(struct k_work *work)
-{
-    struct cmd_work_item *item = CONTAINER_OF(work, struct cmd_work_item, work);
-    shell_execute_cmd(item->sh, item->line);
-}
-
 static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len, void *user_data)
 {
     for (size_t i = 0; i < len; i++)
