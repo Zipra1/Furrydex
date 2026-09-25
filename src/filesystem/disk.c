@@ -216,6 +216,43 @@ const char *get_file_extension(const char *filename)
     return dot + 1; // +1 removes dot
 }
 
+static bool ini_match_keyvalue_line(char *line, size_t line_len, const char *key, size_t key_len, char *value, size_t value_size)
+{
+    if (!(line_len > key_len && strncmp(line, key, key_len) == 0))
+    {
+        return false;
+    }
+
+    size_t idx = key_len;
+
+    while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+    {
+        idx++;
+    }
+
+    if (!(idx < line_len && line[idx] == '='))
+    {
+        return false;
+    }
+    idx++;
+
+    while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+    {
+        idx++;
+    }
+
+    size_t end = line_len;
+    while (end > idx && (line[end - 1] == ' ' || line[end - 1] == '\t'))
+    {
+        end--;
+    }
+
+    line[end] = '\0';
+    strncpy(value, line + idx, value_size - 1);
+    value[value_size - 1] = '\0';
+    return true;
+}
+
 int ini_key_to_value(const char *path, const char *key, char *value, size_t value_size)
 {
     struct fs_file_t file;
@@ -254,37 +291,10 @@ int ini_key_to_value(const char *path, const char *key, char *value, size_t valu
 
             if (character == '\n' || character == '\r')
             {
-                if (line_len > key_len &&
-                    strncmp(line, key, key_len) == 0)
+                if (ini_match_keyvalue_line(line, line_len, key, key_len, value, value_size))
                 {
-                    size_t idx = key_len;
-
-                    while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
-                    {
-                        idx++;
-                    }
-
-                    if (idx < line_len && line[idx] == '=')
-                    {
-                        idx++;
-
-                        while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
-                        {
-                            idx++;
-                        }
-
-                        size_t end = line_len;
-                        while (end > idx && (line[end - 1] == ' ' || line[end - 1] == '\t'))
-                        {
-                            end--;
-                        }
-
-                        line[end] = '\0';
-                        strncpy(value, line + idx, value_size - 1);
-                        value[value_size - 1] = '\0';
-                        result = 0;
-                        goto done;
-                    }
+                    result = 0;
+                    goto done;
                 }
                 line_len = 0;
             }
@@ -299,36 +309,9 @@ int ini_key_to_value(const char *path, const char *key, char *value, size_t valu
         }
     }
 
-    if (line_len > key_len && strncmp(line, key, key_len) == 0)
+    if (ini_match_keyvalue_line(line, line_len, key, key_len, value, value_size))
     {
-        size_t idx = key_len;
-
-        while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
-        {
-            idx++;
-        }
-
-        if (idx < line_len && line[idx] == '=')
-        {
-            idx++;
-
-            while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
-            {
-                idx++;
-            }
-
-            size_t end = line_len;
-            while (end > idx && (line[end - 1] == ' ' || line[end - 1] == '\t'))
-            {
-                end--;
-            }
-
-            line[end] = '\0';
-            strncpy(value, line + idx, value_size - 1);
-            value[value_size - 1] = '\0';
-            result = 0;
-            goto done;
-        }
+        result = 0;
     }
 
 done:
