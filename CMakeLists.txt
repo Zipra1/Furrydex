@@ -49,7 +49,7 @@ target_sources(app PRIVATE
     src/console/console_router.c
     src/usb.c
     src/lua_thread.c
-    src/disk.c
+    src/filesystem/disk.c
     src/input.c
     src/ui.c
     src/AnalogIn.c

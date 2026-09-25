@@ -29,7 +29,7 @@
 #include "luazephyrlib.h"
 #include "ui.h"
 #include "battery.h"
-#include "disk.h"
+#include "filesystem/disk.h"
 #include "fonts/font8.h"
 #include "console/console_router.h"
 

@@ -17,7 +17,7 @@
 #include "console/shell_commands.h"
 #include "usb.h"
 #include "luazephyrlib.h"
-#include "disk.h"
+#include "filesystem/disk.h"
 #include "input.h"
 #include "ui.h"
 #include "lua_thread.h"
@@ -169,7 +169,7 @@ int setup_configs()
     {
         printk("%s -- failed to create config directory (err = %d)\n", __func__, ret);
         return -3;
-    }
+    } 
 
     ret = fs_open(&data_filp, "/SD:/config/file_associations.ini", FS_O_WRITE | FS_O_CREATE);
     if (ret)

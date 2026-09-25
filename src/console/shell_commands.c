@@ -14,11 +14,12 @@
 #include "../lua/lua.h"
 #include "../ui.h"
 #include "../paint.h"
-#include "../disk.h"
+#include "../filesystem/disk.h"
 #include "../lua_thread.h"
 #include "../drivers/ST7305.h"
 #include "../lua_thread.h"
 #include "../imgdata.h"
+#include "../filesystem/file_structure.h"
 
 // Adding commands will require registering them in console_router.c aswell
 
@@ -131,51 +132,18 @@ void cmd_open(const struct shell *shell, size_t argc, char **argv)
         return;
     }
 
-    struct fs_file_t associations_config_file;
-    fs_file_t_init(&associations_config_file);
-
-    if (0 != fs_open(&associations_config_file, "/SD:/config/file_associations.ini", FS_O_READ))
-    {
-        shell_print(shell, "Could not open associations file at /SD:/config/file_associations.ini"); // Hi - bobilka
-        return;
-    }
-
-    fs_seek(&associations_config_file, 0, FS_SEEK_END);
-    size_t size = fs_tell(&associations_config_file);
-    char *associations = malloc(size + 1);
-    associations[size] = 0;
-    fs_seek(&associations_config_file, 0, FS_SEEK_SET);
-    fs_read(&associations_config_file, associations, size);
-    fs_close(&associations_config_file);
-
-    struct fs_file_t file_to_open;
-    fs_file_t_init(&file_to_open);
-
-    if (0 != fs_open(&file_to_open, argv[1], 1))
-    {
-        shell_print(shell, "Could not open file %s", argv[1]);
-        free(associations);
-        return;
-    }
-
-    fs_seek(&file_to_open, 0, FS_SEEK_END);
-    size = fs_tell(&file_to_open);
-    char *script = malloc(size + 1);
-    script[size] = 0;
-    fs_seek(&file_to_open, 0, FS_SEEK_SET);
-    fs_read(&file_to_open, script, size);
-    fs_close(&file_to_open);
-
     char associate[256];
-    ini_key_to_value(associations, get_file_extension(argv[1]), associate, sizeof(associate));
-    free(associations);
+    int ret = ini_key_to_value(CONFIG_LOCATION_FILE_ASSOCIATIONS, get_file_extension(argv[1]), associate, sizeof(associate));
+    if (ret != 0)
+    {
+        printk("cmd_open ini_key_to_value failed for %s, rc=%d\n", CONFIG_LOCATION_FILE_ASSOCIATIONS, ret);
+        return;
+    }
 
     replace_word(associate, sizeof(associate), "%path%", argv[1]);
 
     const struct shell *sh = shell_backend_uart_get_ptr();
     shell_execute_cmd(sh, associate);
-
-    free(script);
 }
 SHELL_CMD_REGISTER(open, NULL, "Open a file. Usage: open <file> [arguments ...]", cmd_open);
 

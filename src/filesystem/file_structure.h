@@ -1,0 +1,1 @@
+#define CONFIG_LOCATION_FILE_ASSOCIATIONS "/SD:/config/file_associations.ini"

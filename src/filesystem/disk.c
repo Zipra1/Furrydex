@@ -5,14 +5,14 @@
 #include <zephyr/shell/shell_uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/storage/disk_access.h>
-#include <zephyr/fs/fs.h> //        _     _ __   ______           _____________________╲ 
-#include <ff.h>//                                      ╰         ╯
-#include <zephyr/logging/log.h>                         //     \╲ 
-#include <zephyr/shell/shell.h>                        // ┊░    \╲ 
-#include "disk.h"                                     //     ░ ┊ \╲ 
-#include "stubs/strlcpy.h"                           //   ░  ┊    \╲ 
-                                                    //             \╲ 
-                                                   //   ░ ┊   ░     ╲╲
+#include <zephyr/fs/fs.h>       //  _     _ __   ______           _____________________╲
+#include <ff.h>                 //                     ╰         ╯
+#include <zephyr/logging/log.h> //                      //     \╲
+#include <zephyr/shell/shell.h> //                     // ┊░    \╲
+#include "disk.h"               //                    //     ░ ┊ \╲
+#include "../stubs/strlcpy.h"   //                   //   ░  ┊    \╲
+//                                                  //             \╲
+//                                                 //   ░ ┊   ░     ╲╲
 /*                                          i used to think _n__n_ id be picked up
              _____╭══════╮_____          and brought  ._____`-00-` to where i was always
             ╱__________________╲                     ╱ #__ # (oo)     \╲
@@ -33,14 +33,14 @@ ___________________________________________//  ░   ┊     ░         ┊    
      |        o  |     |╲╲_______  ╱  my thousand scalpels forced to gut fish
      |           |     ╱ |        ╱__________╱       |
      |           |    ╱ ╱         |       .  |       |
-     |           |   ╱ |     i  t c m t o  a |    w b d i v  s  w                         
-     |           |  ╱   ╲       o o o h t  n |    e o e n e  p  a                     
-     |           | ╱     ╲   r    m r a h  i |    ' t a   r  e  y                     
-     |___________|╱       ╲  e  m p e n e  m |    r h d a y  c                        
-                             l  y u     r  a |    e          i                     
-                             a    t   a    l |  ╱            a                    
-                             t    e   n      | ╱             l                    
-                             e    r   y      |╱                                  
+     |           |   ╱ |     i  t c m t o  a |    w b d i v  s  w
+     |           |  ╱   ╲       o o o h t  n |    e o e n e  p  a
+     |           | ╱     ╲   r    m r a h  i |    ' t a   r  e  y
+     |___________|╱       ╲  e  m p e n e  m |    r h d a y  c
+                             l  y u     r  a |    e          i
+                             a    t   a    l |  ╱            a
+                             t    e   n      | ╱             l
+                             e    r   y      |╱
 */
 LOG_MODULE_REGISTER(fdex_disk, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -59,16 +59,17 @@ const char *disk_mount_pt = "/SD:";
  */
 void lsdir_free(lsdir_result_t *result)
 {
-    if (!result) {
+    if (!result)
+    {
         return;
     }
     free(result->entries);
     result->entries = NULL;
-    result->count   = 0;
+    result->count = 0;
 }
 
 /**
- * @brief List a directory and return its contents. 
+ * @brief List a directory and return its contents.
  * AI generated. Needs review!
  *
  * Uses a two-pass strategy: pass 1 counts entries so memory can be
@@ -90,33 +91,38 @@ void lsdir_free(lsdir_result_t *result)
 int lsdir(const char *path, lsdir_result_t *result)
 {
     int res;
-    struct fs_dir_t  dirp;
+    struct fs_dir_t dirp;
     struct fs_dirent entry;
 
-    if (!result) {
+    if (!result)
+    {
         return -EINVAL;
     }
 
     result->entries = NULL;
-    result->count   = 0;
+    result->count = 0;
 
     fs_dir_t_init(&dirp);
 
     printk("lsdir: opening '%s'\n", path);
     res = fs_opendir(&dirp, path);
-    if (res) {
+    if (res)
+    {
         printk("lsdir: fs_opendir('%s') failed [%d]\n", path, res);
         return res;
     }
 
     int count = 0;
-    for (;;) {
+    for (;;)
+    {
         res = fs_readdir(&dirp, &entry);
-        if (res) {
+        if (res)
+        {
             printk("lsdir: fs_readdir(pass1) failed [%d]\n", res);
             break;
         }
-        if (entry.name[0] == '\0') {    // end-of-directory marker
+        if (entry.name[0] == '\0')
+        { // end-of-directory marker
             res = 0;
             break;
         }
@@ -126,14 +132,16 @@ int lsdir(const char *path, lsdir_result_t *result)
     printk("lsdir: pass1 found %d entries, final res=%d\n", count, res);
     fs_closedir(&dirp);
 
-    if (res != 0 || count == 0) {
+    if (res != 0 || count == 0)
+    {
         return res;
     }
 
     lsdir_entry_t *entries = NULL;
     size_t bytes_needed = (size_t)count * sizeof(*entries);
     entries = malloc(bytes_needed);
-    if (!entries) {
+    if (!entries)
+    {
         printk("Out of heap while listing %s (%d entries, %zu bytes)\n",
                path, count, bytes_needed);
         return -ENOMEM;
@@ -141,48 +149,57 @@ int lsdir(const char *path, lsdir_result_t *result)
 
     printk("lsdir: re-opening '%s' for pass2\n", path);
     res = fs_opendir(&dirp, path);
-    if (res) {
+    if (res)
+    {
         free(entries);
         printk("lsdir: fs_opendir(pass2) failed for '%s' [%d]\n", path, res);
         return res;
     }
 
     int filled = 0;
-    for (;;) {
+    for (;;)
+    {
         res = fs_readdir(&dirp, &entry);
-        if (res) {
+        if (res)
+        {
             printk("lsdir: fs_readdir(pass2) failed [%d]\n", res);
             break;
         }
 
-        if (entry.name[0] == '\0') {
+        if (entry.name[0] == '\0')
+        {
             res = 0;
             break;
         }
 
-        if (filled == count) {
+        if (filled == count)
+        {
             break;
         }
 
         size_t src_len = strlcpy(entries[filled].name,
                                  entry.name,
                                  sizeof(entries[filled].name));
-        if (src_len >= sizeof(entries[filled].name)) {
+        if (src_len >= sizeof(entries[filled].name))
+        {
             printk("Warning: filename truncated in %s: %s\n", path, entry.name);
         }
 
         entries[filled].is_dir = (entry.type == FS_DIR_ENTRY_DIR);
-        entries[filled].size   = entry.size;
+        entries[filled].size = entry.size;
         filled++;
     }
 
     printk("lsdir: pass2 filled %d entries, final res=%d\n", filled, res);
     fs_closedir(&dirp);
 
-    if (res == 0) {
+    if (res == 0)
+    {
         result->entries = entries;
-        result->count   = filled;
-    } else {
+        result->count = filled;
+    }
+    else
+    {
         free(entries);
     }
 
@@ -199,71 +216,140 @@ const char *get_file_extension(const char *filename)
     return dot + 1; // +1 removes dot
 }
 
-void ini_key_to_value(const char *input, const char *target, char *out, size_t out_size)
+int ini_key_to_value(const char *path, const char *key, char *value, size_t value_size)
 {
-    if (out_size == 0)
-    {
-        return;
-    }
-    out[0] = '\0';
+    struct fs_file_t file;
+    fs_file_t_init(&file);
 
-    char *associate = strstr(input, target);
-    if (associate == NULL)
+    int ret = fs_open(&file, path, FS_O_READ);
+    if (ret != 0)
     {
-        return;
+        return ret;
     }
 
-    char *equals_pointer = strchr(associate, '=');
-    if (equals_pointer == NULL)
+#define INI_KEY_TO_VALUE_MAX_LINE_LEN 256
+    char chunk[64];
+    char line[INI_KEY_TO_VALUE_MAX_LINE_LEN];
+    size_t line_len = 0;
+    size_t key_len = strlen(key);
+    int result = -ENOENT;
+
+    for (;;)
     {
-        return; // no '=' found; nothing to extract
+        ssize_t bytes_read = fs_read(&file, chunk, sizeof(chunk));
+        if (bytes_read < 0)
+        {
+            result = (int)bytes_read;
+            printk("ini_key_to_value: File read fail %i\n", bytes_read);
+            break;
+        }
+        if (bytes_read == 0)
+        {
+            break;
+        }
+
+        for (ssize_t i = 0; i < bytes_read; i++)
+        {
+            char character = chunk[i];
+
+            if (character == '\n' || character == '\r')
+            {
+                if (line_len > key_len &&
+                    strncmp(line, key, key_len) == 0)
+                {
+                    size_t idx = key_len;
+
+                    while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+                    {
+                        idx++;
+                    }
+
+                    if (idx < line_len && line[idx] == '=')
+                    {
+                        idx++;
+
+                        while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+                        {
+                            idx++;
+                        }
+
+                        size_t end = line_len;
+                        while (end > idx && (line[end - 1] == ' ' || line[end - 1] == '\t'))
+                        {
+                            end--;
+                        }
+
+                        line[end] = '\0';
+                        strncpy(value, line + idx, value_size - 1);
+                        value[value_size - 1] = '\0';
+                        result = 0;
+                        goto done;
+                    }
+                }
+                line_len = 0;
+            }
+            else if (line_len < sizeof(line) - 1)
+            {
+                line[line_len++] = character;
+            }
+            else
+            {
+                printk("ini_key_to_value error, line too long! max line length is %i", INI_KEY_TO_VALUE_MAX_LINE_LEN);
+            }
+        }
     }
 
-    char *value_start = equals_pointer + 1;
-    while (*value_start == ' ')
+    if (line_len > key_len && strncmp(line, key, key_len) == 0)
     {
-        value_start++;
+        size_t idx = key_len;
+
+        while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+        {
+            idx++;
+        }
+
+        if (idx < line_len && line[idx] == '=')
+        {
+            idx++;
+
+            while (idx < line_len && (line[idx] == ' ' || line[idx] == '\t'))
+            {
+                idx++;
+            }
+
+            size_t end = line_len;
+            while (end > idx && (line[end - 1] == ' ' || line[end - 1] == '\t'))
+            {
+                end--;
+            }
+
+            line[end] = '\0';
+            strncpy(value, line + idx, value_size - 1);
+            value[value_size - 1] = '\0';
+            result = 0;
+            goto done;
+        }
     }
 
-    char *line_end = strchr(value_start, '\n');
-    size_t len = (line_end != NULL) ? (size_t)(line_end - value_start) : strlen(value_start);
-
-    if (len >= out_size)
-    {
-        len = out_size - 1;
-    }
-
-    memcpy(out, value_start, len);
-    out[len] = '\0';
+done:
+    fs_close(&file);
+    return result;
 }
 
-void openfile_fdl(const char *input){
-    struct fs_file_t fdl_file;
-    fs_file_t_init(&fdl_file);
+void openfile_fdl(const char *input)
+{
+    char cmd[256 + 5];
+    memcpy(cmd, "open ", 5);
 
-    if (0 != fs_open(&fdl_file, input, FS_O_READ))
+    int ret = ini_key_to_value(input, "path", cmd + 5, sizeof(cmd) - 5);
+    if (ret != 0)
     {
-        printk("Could not open file at %s", input);
+        printk("openfile_fdl ini_key_to_value failed for %s, rc=%d\n", input, ret);
         return;
     }
-
-    fs_seek(&fdl_file, 0, FS_SEEK_END);
-    size_t size = fs_tell(&fdl_file);
-    char *fdl = malloc(size + 1);
-    fdl[size] = 0;
-    fs_seek(&fdl_file, 0, FS_SEEK_SET);
-    fs_read(&fdl_file, fdl, size);
-    fs_close(&fdl_file);
-
-    char cmd[128];
-    memcpy(cmd, "open ", 5);
-    char *value = cmd+5;
-    ini_key_to_value(fdl, "path", value, sizeof(cmd)-5);
 
     const struct shell *sh = shell_backend_uart_get_ptr();
     shell_execute_cmd(sh, cmd);
-
-    free(fdl);
 }
 
 int mount_sd_card(void)

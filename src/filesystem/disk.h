@@ -22,7 +22,7 @@ int mount_sd_card(void);
 int lsdir(const char *path, lsdir_result_t *result);
 void lsdir_free(lsdir_result_t *result);
 const char *get_file_extension(const char *filename);
-void ini_key_to_value(const char *input, const char *target, char *out, size_t out_size);
+int ini_key_to_value(const char *path, const char *key, char *value, size_t value_size);
 void openfile_fdl(const char *input);
 
 #endif
