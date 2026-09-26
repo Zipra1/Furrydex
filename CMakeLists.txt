@@ -58,4 +58,5 @@ target_sources(app PRIVATE
     src/drivers/ST7305.c
     src/stubs/strlcpy.c
     src/radio/radio.c
+    src/radio/nfc.c
 )

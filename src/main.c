@@ -24,6 +24,7 @@
 #include "ui.h"
 #include "console/console_router.h"
 #include "radio/radio.h"
+#include "radio/nfc.h"
 
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs.h>
@@ -222,7 +223,6 @@ int main(void)
     if (mount_sd_card())
     {
         LOG_ERR("Failed to mount SD card");
-        // return -1;
     }
     else
     {
@@ -231,9 +231,6 @@ int main(void)
 
         setup_configs();
         screen_log("Setup configs");
-
-        // bool force = true;
-        // disk_access_ioctl(DISK_NAME, DISK_IOCTL_CTRL_DEINIT, &force);
     }
 
     if (ble_core_init() == 0)
@@ -242,7 +239,13 @@ int main(void)
     }
     else
     {
-        screen_log("Failed to initialize BLE");
+        screen_log("Failed to init BLE");
+    }
+
+    if(init_nfc()==0){
+        screen_log("Initialized NFC");
+    }else{
+        screen_log("Failed to init NFC");
     }
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
