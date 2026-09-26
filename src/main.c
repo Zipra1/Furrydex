@@ -253,13 +253,16 @@ int main(void)
         "What do you mean it's just Zephyr?",
         "Finally, an OS for fuzzies",
         "mreooraoeomreaoomewo moewww",
-        "hi i love you - your computer",
+        "hi i love you",
         "<3",
         "OwO whats this?cough.hack. Im so sorry.",
-        "Help me! Im stuck in your computer!"
+        "Help me! Im stuck in your computer!",
+        "Now with 2 tails!",
+        "FunOS",
+        "whap whap Sorry my tail's so big haha whap"
     };
     printk(FUROS_BANNER);
-    printk("Version α - %s %s | \"%s\"\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);
+    printk("Version α - %s %s | \"%s\"\n\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);
 
     while (true)
     {
