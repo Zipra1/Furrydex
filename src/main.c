@@ -250,7 +250,7 @@ int main(void)
 
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
 
-    k_msleep(300); // probably there is a better way to get the banner to show lol
+    k_msleep(300); // probably there is a better way to get the banner to show lol. maybe a separate thread that starts last?
     uint8_t random = sys_rand8_get();
     const char *splash_text[] = {
         "What do you mean it's just Zephyr?",
@@ -262,7 +262,11 @@ int main(void)
         "Help me! Im stuck in your computer!",
         "Now with 2 tails!",
         "FunOS",
-        "whap whap Sorry my tail's so big haha whap"
+        "whap whap Sorry my tail's so big haha whap",
+        "salutations from the slime vat",
+        "Tails sold separately",
+        "clank clank clank clank clank",
+        "Lua NOW!"
     };
     printk(FUROS_BANNER);
     printk("Version α - %s %s | \"%s\"\n\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);

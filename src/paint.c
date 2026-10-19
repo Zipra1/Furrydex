@@ -120,6 +120,7 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
 {
     int character_width = 5;
     int line_height = 8;
+    int character_advance = character_width + kerning;
 
     int current_x = 0;
     int current_y = 0;
@@ -127,17 +128,23 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
 
     translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len;)
     {
         if (string[i] == '\n')
         {
             current_x = 0;
             current_y += line_height;
+            i++;
             continue;
         }
 
-        if (current_x == 0 && string[i] == ' ')
+        if (string[i] == ' ')
         {
+            if (current_x > 0)
+            {
+                current_x += character_advance;
+            }
+            i++;
             continue;
         }
 
@@ -148,25 +155,28 @@ int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate
         }
 
         int word_len = word_end - i;
-        int word_pixel_width = word_len * (character_width + kerning);
+        int word_pixel_width = word_len * character_advance;
 
-        if (current_x + word_pixel_width > box_width && current_x > 0)
+        if (current_x > 0 &&
+            (word_pixel_width > box_width || current_x + word_pixel_width > box_width))
         {
             current_x = 0;
             current_y += line_height;
         }
 
-        for (int j = 0; j < word_len; j++)
+        for (int j = i; j < word_end; j++)
         {
-            paintCharacter(string[i], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y, font);
-            current_x += (character_width + kerning);
-            i++;
+            if (current_x > 0 && current_x + character_advance > box_width)
+            {
+                current_x = 0;
+                current_y += line_height;
+            }
+
+            paintCharacter(string[j], buf, buf_w, buf_h, translate_width + current_x, translate_height + current_y, font);
+            current_x += character_advance;
         }
 
-        if (i < len && string[i] == ' ')
-        {
-            current_x += (character_width + kerning);
-        }
+        i = word_end;
     }
 
     return current_y + line_height;
