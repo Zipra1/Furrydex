@@ -44,6 +44,13 @@ ___________________________________________//  ░   ┊     ░         ┊    
 */
 LOG_MODULE_REGISTER(fdex_disk, CONFIG_LOG_DEFAULT_LEVEL);
 
+#ifdef CONFIG_DISK_MODE_NVS
+#pragma message("Disk mode is NVS")
+#endif
+#ifdef CONFIG_DISK_MODE_SD
+#pragma message("Disk mode is SD")
+#endif
+
 static FATFS fat_fs;
 /* mounting info */
 struct fs_mount_t mp = {
@@ -51,7 +58,7 @@ struct fs_mount_t mp = {
     .fs_data = &fat_fs,
 };
 
-const char *disk_mount_pt = "/SD:";
+const char *disk_mount_pt = FURRYDEX_MOUNT_POINT;
 
 /**
  * @brief Release memory allocated by lsdir().
@@ -88,6 +95,7 @@ void lsdir_free(lsdir_result_t *result)
  * @param result Output; populated with one entry per item found.
  * @return 0 on success, negative errno on failure.
  */
+
 int lsdir(const char *path, lsdir_result_t *result)
 {
     int res;
@@ -334,11 +342,11 @@ void openfile_fdl(const struct shell *shell, const char *input)
     shell_execute_cmd(shell, cmd);
 }
 
-int mount_sd_card(void)
+int mount_drive(void)
 {
     /* raw disk i/o */
-    static const char *disk_pdrv = "SD";
-    uint64_t memory_size_mb;
+    static const char *disk_pdrv = FURRYDEX_DISK_NAME;
+    uint64_t memory_size_kb;
     uint32_t block_count;
     uint32_t block_size;
 
@@ -364,8 +372,8 @@ int mount_sd_card(void)
     }
     printk("Sector size %u\n", block_size);
 
-    memory_size_mb = (uint64_t)block_count * block_size;
-    printk("Memory Size(MB) %u\n", (uint32_t)(memory_size_mb >> 20));
+    memory_size_kb = ((uint64_t)block_count * block_size) >> 10;
+    printk("Memory Size(KB) %u\n", (uint32_t)memory_size_kb);
 
     mp.mnt_point = disk_mount_pt;
 

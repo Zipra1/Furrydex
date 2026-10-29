@@ -430,7 +430,7 @@ static int cmd_ls(const struct shell *sh, size_t argc, char **argv)
 
     if (argc != 2)
     {
-        shell_error(sh, "Usage: ls <directory>\nExample: ls /SD:/folder/");
+        shell_error(sh, "Usage: ls <directory>\nExample: ls " FURRYDEX_MOUNT_POINT "/folder/");
         return -EINVAL;
     }
 

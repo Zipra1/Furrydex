@@ -39,9 +39,7 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
 
-#define DISK_NAME "SD"
-
-USBD_DEFINE_MSC_LUN(sd_lun, DISK_NAME, "Macroplastics", "Furrydex", "1.00");
+USBD_DEFINE_MSC_LUN(drive_lun, FURRYDEX_DISK_NAME, "Macroplastics", "Furrydex", "1.00");
 
 const struct device *const uart_dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
@@ -149,10 +147,14 @@ unsigned char output_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
 uint8_t text_pos = 2;
 void screen_log(char *log)
 {
+    #if CONFIG_FUROS_HEADLESS==0
     size_t len = strlen(log);
     paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, (text_pos++) * 8, log, font_8, len);
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
+    #else
+    printk(log);
+    #endif
 }
 
 int setup_configs()
@@ -162,20 +164,20 @@ int setup_configs()
     int ret;
     fs_file_t_init(&data_filp);
 
-    ret = fs_stat("/SD:/config/file_associations.ini", &entry);
+    ret = fs_stat(FURRYDEX_MOUNT_POINT "/config/file_associations.ini", &entry);
     if (ret == 0)
     {
         return 0;
     }
 
-    ret = fs_mkdir("/SD:/config");
+    ret = fs_mkdir(FURRYDEX_MOUNT_POINT "/config");
     if (ret != 0 && ret != -EEXIST)
     {
         printk("%s -- failed to create config directory (err = %d)\n", __func__, ret);
         return -3;
     }
 
-    ret = fs_open(&data_filp, "/SD:/config/file_associations.ini", FS_O_WRITE | FS_O_CREATE);
+    ret = fs_open(&data_filp, FURRYDEX_MOUNT_POINT "/config/file_associations.ini", FS_O_WRITE | FS_O_CREATE);
     if (ret)
     {
         printk("%s -- failed to create file (err = %d)\n", __func__, ret);
@@ -187,7 +189,9 @@ int setup_configs()
     }
 
     char file_data_buffer[200];
-    snprintf(file_data_buffer, sizeof(file_data_buffer), "[file_associations]\nlua = lua_lf %%path%%\nbmp = lua_lf /SD:/programs/image_viewer.lua %%path%%\ntxt = lua_lf /SD:/programs/text_viewer.lua %%path%%\nfdl = open_fdl %%path%%");
+    snprintf(file_data_buffer, sizeof(file_data_buffer),
+             "[file_associations]\nlua = lua_lf %%path%%\nbmp = lua_lf %s/programs/image_viewer.lua %%path%%\ntxt = lua_lf %s/programs/text_viewer.lua %%path%%\nfdl = open_fdl %%path%%",
+             FURRYDEX_MOUNT_POINT, FURRYDEX_MOUNT_POINT);
     ret = fs_write(&data_filp, file_data_buffer, strlen(file_data_buffer));
     fs_close(&data_filp);
     return 0;
@@ -196,9 +200,13 @@ int setup_configs()
 int main(void)
 {
     int ret;
+    #if CONFIG_FUROS_HEADLESS==0
     initDisplay();
     invert(main_buffer, CONFIG_FURRYDEX_FRAME_BYTES_BUFFER);
     screen_log("Display initialized");
+    #else
+    #pragma message ("Headless mode")
+    #endif
 
     if (!device_is_ready(uart_dev))
     {
@@ -222,14 +230,14 @@ int main(void)
 
     k_msleep(100); // is this necessary
 
-    if (mount_sd_card())
+    if (mount_drive())
     {
-        LOG_ERR("Failed to mount SD card");
+        LOG_ERR("Failed to mount drive");
     }
     else
     {
-        printk("Successfully mounted SD card\n");
-        screen_log("SD card mounted");
+        printk("Successfully mounted drive\n");
+        screen_log("Drive mounted");
 
         setup_configs();
         screen_log("Setup configs");
@@ -254,8 +262,9 @@ int main(void)
     }else{
         screen_log("Failed to init NFC");
     }
-
+    #if CONFIG_FUROS_HEADLESS==0
     blit(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, blit_test, 32, 32, 45, 77);
+    #endif
 
     k_msleep(300); // probably there is a better way to get the banner to show lol. maybe a separate thread that starts last?
     uint8_t random = sys_rand8_get();
@@ -274,11 +283,12 @@ int main(void)
         "Tails sold separately",
         "clank clank clank clank clank",
         "Lua NOW!",
-        "Si, lontana da Scienza."
+        "Si, lontana da Scienza.",
+        "The worst piece of software I know"
     };
     printk(FUROS_BANNER);
     printk("Version α - %s %s | \"%s\"\n\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);
-
+    #if CONFIG_FUROS_HEADLESS==0
     while (true)
     {
         draw_ui();
@@ -288,6 +298,7 @@ int main(void)
         waitForTE();
         Display(25, 0, 36, 125, output_buffer);
     }
+    #endif
     return 0;
 }
 

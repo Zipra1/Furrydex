@@ -125,6 +125,7 @@ static void lua_thread_set_args(lua_State *state, lua_thread_slot_t *slot)
 
 int lua_thread_update_priorities(int selected_slot)
 {
+    #if CONFIG_FUROS_HEADLESS==0
     for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {
         if (!lua_slots[i].in_use)
@@ -133,6 +134,7 @@ int lua_thread_update_priorities(int selected_slot)
         int prio = (i == selected_slot) ? LUA_THREAD_PRIO_FG : LUA_THREAD_PRIO_BG;
         k_thread_priority_set(&lua_slots[i].thread, prio);
     }
+    #endif
     return 0;
 }
 

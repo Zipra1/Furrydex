@@ -147,6 +147,35 @@ config LUA_THREAD_STACK_SIZE
 
 endmenu
 
+menu "FurOS"
+config FUROS_HEADLESS
+	bool "Run FurOS headless (no GUI)"
+	default true
+	help
+		Run FurOS headless (No GUI)
+
+choice
+    prompt "Disk mode"
+    default DISK_MODE_NVS
+
+config DISK_MODE_SD
+    bool "Use an SD card as the mounted drive"
+    help
+      Mount the connected SD card on startup and treat it as the main drive.
+
+config DISK_MODE_NVS
+    bool "Use the internal storage of the SoC as the mounted drive"
+    select FAT_FILESYSTEM_ELM
+    select DISK_DRIVER_FLASH
+    select FLASH_MAP
+    help
+      Use a FAT filesystem on the SoC's internal flash as the main drive.
+      The drive is also exposed over USB mass storage.
+
+endchoice
+
+endmenu
+
 menu "BLE defaults"
 	depends on BT
 

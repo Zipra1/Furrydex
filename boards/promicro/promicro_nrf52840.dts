@@ -239,3 +239,31 @@
 &nfct {
 	status = "okay";
 };
+
+/delete-node/ &slot1_partition;
+/delete-node/ &storage_partition;
+
+&flash0 {
+	partitions {
+		slot1_partition: partition@82000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0x00082000 0x0003e000>;
+		};
+
+		storage_partition: partition@c0000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x000c0000 0x00040000>;
+		};
+	};
+};
+
+/ {
+	msc_disk0 {
+		compatible = "zephyr,flash-disk";
+		partition = <&storage_partition>;
+		disk-name = "NVS";
+		cache-size = <4096>;
+	};
+};

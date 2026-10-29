@@ -7,6 +7,14 @@
 
 struct shell;
 
+#if defined(CONFIG_DISK_MODE_NVS)
+#define FURRYDEX_DISK_NAME "NVS"
+#define FURRYDEX_MOUNT_POINT "/NVS:"
+#else
+#define FURRYDEX_DISK_NAME "SD"
+#define FURRYDEX_MOUNT_POINT "/SD:"
+#endif
+
 #define LSDIR_MAX_NAME_LEN 32
 
 typedef struct {
@@ -20,7 +28,7 @@ typedef struct {
     int            count;   /**< Number of valid entries in the array.       */
 } lsdir_result_t;
 
-int mount_sd_card(void);
+int mount_drive(void);
 int lsdir(const char *path, lsdir_result_t *result);
 void lsdir_free(lsdir_result_t *result);
 const char *get_file_extension(const char *filename);
