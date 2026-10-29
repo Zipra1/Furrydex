@@ -42,6 +42,18 @@
 // 
 //  Font data for Courier New 12pt // todo: make a Furrydex font!
 // 
+uint8_t font_8_error[] = {
+	// Error code
+	0xF8,
+	0x88,
+	0xA8,
+	0xA8,
+	0x88,
+	0xA8,
+	0x88,
+	0xF8,
+};
+
 uint8_t font_8[] = {
 	// @0 ' ' (5 pixels wide)
 	0x00, //      

@@ -1,6 +1,8 @@
 #ifndef RADIO_H
 #define RADIO_H
 
+#include <stdbool.h>
+
 int ble_core_init(void);
 int ble_adv_start(struct bt_le_adv_param *adv_param, struct bt_le_ext_adv **ble_adv, struct bt_data *ad, size_t ad_len);
 int ble_adv_stop(struct bt_le_ext_adv **ble_adv);
@@ -16,6 +18,7 @@ struct ble_scan_event
 {
     bt_addr_le_t addr;
     int8_t rssi;
+    bool nus_connectable;
     uint8_t ad_len;
     uint8_t ad_data[BLE_MAX_AD_LEN];
 };

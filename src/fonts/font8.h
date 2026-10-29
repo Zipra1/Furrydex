@@ -4,5 +4,6 @@
 #include <stdint.h>
 
 extern uint8_t font_8[];
+extern uint8_t font_8_error[];
 
 #endif

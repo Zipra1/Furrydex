@@ -142,8 +142,7 @@ void cmd_open(const struct shell *shell, size_t argc, char **argv)
 
     replace_word(associate, sizeof(associate), "%path%", argv[1]);
 
-    const struct shell *sh = shell_backend_uart_get_ptr();
-    shell_execute_cmd(sh, associate);
+    shell_execute_cmd(shell, associate);
 }
 SHELL_CMD_REGISTER(open, NULL, "Open a file. Usage: open <file> [arguments ...]", cmd_open);
 
@@ -155,7 +154,7 @@ void cmd_open_fdl(const struct shell *shell, size_t argc, char **argv)
         return;
     }
 
-    openfile_fdl(argv[1]);
+    openfile_fdl(shell, argv[1]);
 }
 SHELL_CMD_REGISTER(open_fdl, NULL, "Open an FDL (shortcut) file. Usage: open <file>", cmd_open_fdl);
 

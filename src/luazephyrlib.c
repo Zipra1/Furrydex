@@ -217,7 +217,8 @@ static int lua_paint_text(lua_State *L)
     int x = luaL_checknumber(L, 1);
     int y = luaL_checknumber(L, 2);
     int kerning = luaL_checknumber(L, 3);
-    const char *text = luaL_checkstring(L, 4);
+    size_t text_len;
+    const char *text = luaL_checklstring(L, 4, &text_len);
     canvas_t *canvas;
     font_t *font = luaL_testudata(L, 5, "paint.font");
     ;
@@ -239,7 +240,8 @@ static int lua_paint_text(lua_State *L)
                   canvas ? x - CONFIG_FURRYDEX_DISPLAY_OFFSET_X : x,
                   y,
                   text,
-                  font ? font->ptr : font_8);
+                  font ? font->ptr : font_8,
+                  text_len);
         k_mutex_unlock(&lua_paint_mutex);
     }
     return 0;
@@ -251,7 +253,8 @@ static int lua_paint_text_wrap(lua_State *L)
     int y = luaL_checknumber(L, 2);
     int kerning = luaL_checknumber(L, 3);
     int width = luaL_checknumber(L, 4);
-    const char *text = luaL_checkstring(L, 5);
+    size_t text_len;
+    const char *text = luaL_checklstring(L, 5, &text_len);
     canvas_t *canvas;
     font_t *font = luaL_testudata(L, 6, "paint.font");
     ;
@@ -275,7 +278,8 @@ static int lua_paint_text_wrap(lua_State *L)
                               y,
                               width,
                               text,
-                              font ? font->ptr : font_8);
+                              font ? font->ptr : font_8,
+                              text_len);
         k_mutex_unlock(&lua_paint_mutex);
     }
     lua_pushinteger(L, lines);
@@ -773,7 +777,9 @@ int lua_sleep_ms(lua_State *L)
 /////////////////
 
 #include "radio/radio.h"
+#include "radio/ble_peer.h"
 #include <zephyr/bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/addr.h>
 #include <zephyr/bluetooth/gap.h>
 
 int lua_ble_event_get(lua_State *L)
@@ -794,7 +800,11 @@ int lua_ble_event_get(lua_State *L)
         }
         if (start_scan)
         {
-            ble_scan_start();
+            int ret = ble_scan_start();
+            if (ret != 0)
+            {
+                return luaL_error(L, "BLE scan start failed: %d", ret);
+            }
         }
     }
     lua_slots[own_slot].ble_enabled = true;
@@ -810,17 +820,44 @@ int lua_ble_event_get(lua_State *L)
     {
         atomic_dec(&lua_slots[own_slot].ble_fifo_depth);
     }
-    char *payload = pulled_event.ad_data + 4;
-    size_t payload_len = pulled_event.ad_len > 4 ? (size_t)(pulled_event.ad_len - 4) : 0;
+    const char *payload = (const char *)&pulled_event.ad_data[4];
+    size_t payload_len = ret == 0 && pulled_event.ad_len > 4
+                             ? (size_t)(pulled_event.ad_len - 4)
+                             : 0;
 
-    char *manufacturer_id = pulled_event.ad_data + 2;
+    char manufacturer_id[2] = {0};
+    char advertising_prefix[2] = {0};
+    if (ret == 0 && pulled_event.ad_len >= 2)
+    {
+        advertising_prefix[0] = (char)pulled_event.ad_data[0];
+        advertising_prefix[1] = (char)pulled_event.ad_data[1];
+    }
+    if (ret == 0 && pulled_event.ad_len >= 4)
+    {
+        manufacturer_id[0] = (char)pulled_event.ad_data[2];
+        manufacturer_id[1] = (char)pulled_event.ad_data[3];
+    }
 
     lua_pushboolean(L, (ret == 0) ? true : false);
     lua_pushinteger(L, pulled_event.rssi);
     lua_pushlstring(L, payload, payload_len);
     lua_pushlstring(L, manufacturer_id, 2);
-    lua_pushlstring(L, pulled_event.ad_data, 2);
-    return 5;
+    lua_pushlstring(L, advertising_prefix, sizeof(advertising_prefix));
+    if (ret == 0)
+    {
+        char address[BT_ADDR_STR_LEN];
+        bt_addr_to_str(&pulled_event.addr.a, address, sizeof(address));
+        lua_pushstring(L, address);
+        lua_pushinteger(L, pulled_event.addr.type);
+        lua_pushboolean(L, pulled_event.nus_connectable);
+    }
+    else
+    {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+    return 8;
 }
 
 #define BLE_PAYLOAD_CAP (BLE_MAX_AD_LEN - 2)
@@ -834,7 +871,8 @@ int lua_ble_advertizing_start(lua_State *L)
     uint32_t interval_max = luaL_optinteger(L, 3, 1200);
     size_t company_id_len;
     const char *company_id = luaL_optlstring(L, 4, CONFIG_BLE_DEFAULT_COMPANY_ID, &company_id_len);
-    if (company_id_len != 2){
+    if (company_id_len != 2)
+    {
         printk("Error setting BLE company id. Please provide only 2 bytes of data!");
         company_id = CONFIG_BLE_DEFAULT_COMPANY_ID;
     }
@@ -900,10 +938,65 @@ int lua_ble_advertizing_stop(lua_State *L)
     return 0;
 }
 
+static int lua_ble_peer_send(lua_State *L)
+{
+    size_t length;
+    const char *line = luaL_checklstring(L, 1, &length);
+    int ret = ble_peer_send_line(line, length);
+    if (ret != 0)
+    {
+        printk("BLE peer send failed: %d", ret);
+    }
+
+    return 0;
+}
+
+static int lua_ble_peer_pair(lua_State *L)
+{
+    size_t length;
+    size_t length_type;
+    int ret;
+    const char *target = luaL_optlstring(L, 1, NULL, &length);
+    const char *type = luaL_optlstring(L, 2, NULL, &length_type);
+
+    if ((target == NULL) || (type == NULL))
+    {
+        ret = ble_peer_listen();
+        if (ret != 0)
+        {
+            printk("Could not start BLE peer advertising: %d", ret);
+            return ret;
+        }
+        printk("Advertising as a BLE NUS peer.");
+    }
+    else
+    {
+        bt_addr_le_t peer_addr;
+        ret = bt_addr_le_from_str(target, type, &peer_addr);
+        if (ret != 0)
+        {
+            printk("Invalid BLE peer address or type: %d", ret);
+            return ret;
+        }
+        ret = ble_peer_connect(&peer_addr);
+        if (ret != 0)
+        {
+            printk("Could not connect to selected BLE peer: %d", ret);
+            return ret;
+        }
+        printk("Connecting to %s (%s).", target, type);
+    }
+    return 0;
+}
+
 static const luaL_Reg ble_funcs[] = {
     {"scan", lua_ble_event_get},
     {"advertize", lua_ble_advertizing_start},
-    {"advertize_stop",lua_ble_advertizing_stop},
+    {"advertize_stop", lua_ble_advertizing_stop},
+    {"send", lua_ble_peer_send},
+    {"pair", lua_ble_peer_pair},
+    // receive
+    // status
     {NULL, NULL},
 };
 

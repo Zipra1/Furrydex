@@ -47,6 +47,7 @@ target_sources(app PRIVATE
     src/paint.c
     src/console/shell_commands.c
     src/console/console_router.c
+    src/radio/ble_peer.c
     src/usb.c
     src/lua_thread.c
     src/filesystem/disk.c

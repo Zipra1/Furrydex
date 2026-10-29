@@ -319,7 +319,7 @@ ini_key_to_value_done:
     return result;
 }
 
-void openfile_fdl(const char *input)
+void openfile_fdl(const struct shell *shell, const char *input)
 {
     char cmd[256 + 5];
     memcpy(cmd, "open ", 5);
@@ -331,8 +331,7 @@ void openfile_fdl(const char *input)
         return;
     }
 
-    const struct shell *sh = shell_backend_uart_get_ptr();
-    shell_execute_cmd(sh, cmd);
+    shell_execute_cmd(shell, cmd);
 }
 
 int mount_sd_card(void)

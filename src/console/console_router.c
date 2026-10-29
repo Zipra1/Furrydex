@@ -4,9 +4,28 @@
 #include <zephyr/shell/shell_uart.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include "console_router.h"
 
 K_MSGQ_DEFINE(lua_serial_msgq, LUA_SERIAL_MSG_SIZE, 8, 4);
+
+int console_router_send_lua_line(const char *line)
+{
+    if (line == NULL)
+    {
+        return -EINVAL;
+    }
+
+    size_t len = strnlen(line, LUA_SERIAL_MSG_SIZE);
+    if (len >= LUA_SERIAL_MSG_SIZE)
+    {
+        return -EMSGSIZE;
+    }
+
+    char msg[LUA_SERIAL_MSG_SIZE] = {0};
+    memcpy(msg, line, len);
+    return k_msgq_put(&lua_serial_msgq, msg, K_NO_WAIT);
+}
 
 static char router_line[LUA_SERIAL_MSG_SIZE];
 static size_t router_len = 0;
@@ -40,6 +59,7 @@ static const char *const known_commands[] = {
     "fps",
     "open",
     "open_fdl",
+    "ble_peer",
     NULL,
 };
 
@@ -114,7 +134,10 @@ static void console_router_cb(const struct shell *sh, uint8_t *data, size_t len,
             }
             else
             {
-                k_msgq_put(&lua_serial_msgq, router_line, K_NO_WAIT);
+                if (console_router_send_lua_line(router_line) != 0)
+                {
+                    shell_fprintf(sh, SHELL_WARNING, "\r\n[Lua input queue full, dropped]\r\n");
+                }
             }
             router_len = 0;
         }

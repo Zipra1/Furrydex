@@ -24,6 +24,7 @@
 #include "ui.h"
 #include "console/console_router.h"
 #include "radio/radio.h"
+#include "radio/ble_peer.h"
 #include "radio/nfc.h"
 
 #include <zephyr/storage/disk_access.h>
@@ -148,7 +149,8 @@ unsigned char output_buffer[CONFIG_FURRYDEX_FRAME_BYTES_BUFFER];
 uint8_t text_pos = 2;
 void screen_log(char *log)
 {
-    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, (text_pos++) * 8, log, font_8);
+    size_t len = strlen(log);
+    paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 0, (text_pos++) * 8, log, font_8, len);
     convertBuffer(main_buffer, output_buffer);
     Display(25, 0, 36, 125, output_buffer);
 }
@@ -236,6 +238,11 @@ int main(void)
     if (ble_core_init() == 0)
     {
         screen_log("Initialized BLE");
+        ret = ble_peer_init();
+        if (ret != 0)
+        {
+            LOG_ERR("Failed to initialize BLE peer link: %d", ret);
+        }
     }
     else
     {
@@ -266,7 +273,8 @@ int main(void)
         "salutations from the slime vat",
         "Tails sold separately",
         "clank clank clank clank clank",
-        "Lua NOW!"
+        "Lua NOW!",
+        "Si, lontana da Scienza."
     };
     printk(FUROS_BANNER);
     printk("Version α - %s %s | \"%s\"\n\n", __DATE__, __TIME__, splash_text[random%(sizeof(splash_text)/sizeof(splash_text[0]))]);

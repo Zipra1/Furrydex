@@ -64,6 +64,17 @@ void convertFontBitmapSheet(const uint8_t *src_pixels, int src_w, int src_h, int
 
 void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int translate_width, int translate_height, uint8_t *font)
 {
+    if (character < 32)
+    {
+        character = ' ';
+        font = font_8_error;
+    }
+    if (character > 126)
+    {
+        character = ' ';
+        font = font_8_error;
+    }
+
     int fontHeight = 8;
     int charStart = ((int)character - 32) * fontHeight;
     int stride = (buf_w + 7) / 8;
@@ -94,11 +105,11 @@ void paintCharacter(char character, uint8_t *buf, int buf_w, int buf_h, int tran
     }
 }
 
-void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string, uint8_t *font)
+void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, const char *string, uint8_t *font, uint16_t len)
 {
     int character_width = 5;
     int line_height = 8;
-    int len = strlen(string);
+    // int len = strlen(string);
     int current_x = 0;
     int current_y = 0;
     translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
@@ -116,16 +127,14 @@ void paintText(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_wi
     }
 }
 
-int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string, uint8_t *font)
+int paintTextWrap(uint8_t *buf, int buf_w, int buf_h, int kerning, int translate_width, int translate_height, int box_width, const char *string, uint8_t *font, uint16_t len)
 {
     int character_width = 5;
     int line_height = 8;
     int character_advance = character_width + kerning;
-
     int current_x = 0;
     int current_y = 0;
-    int len = strlen(string);
-
+    // int len = strlen(string);
     translate_width += CONFIG_FURRYDEX_DISPLAY_OFFSET_X;
 
     for (int i = 0; i < len;)
@@ -459,15 +468,15 @@ void paintFilledCircle(uint8_t *buf, int buf_w, int buf_h, int center_x, int cen
 
 void paintPageBubbles(uint8_t *buf, int buf_w, int buf_h, int num_bubble, int selected_bubble)
 {
-    int center = (CONFIG_FURRYDEX_DISPLAY_WIDTH - CONFIG_FURRYDEX_DISPLAY_OFFSET_X)/2;
+    int center = (CONFIG_FURRYDEX_DISPLAY_WIDTH - CONFIG_FURRYDEX_DISPLAY_OFFSET_X) / 2;
     int i = 0;
     num_bubble = num_bubble - 1;
     while (i <= num_bubble)
     {
-        paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT-6, 4, 0);
+        paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT - 6, 4, 0);
         if (i == selected_bubble)
         {
-            paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT-6, 2, 1);
+            paintFilledCircle(buf, buf_w, buf_h, center + (i * 10) - (num_bubble * 5), CONFIG_FURRYDEX_DISPLAY_HEIGHT - 6, 2, 1);
         }
         i++;
     }

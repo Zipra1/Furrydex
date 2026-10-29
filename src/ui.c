@@ -174,7 +174,8 @@ void draw_ui()
         update_tray_icons();
         draw_battery_indicator();
         paintPageBubbles(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, num_shown_lua_threads + 1, atomic_get(&visible_slot_index));
-        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 4, 12, "Placeholder", font_8);
+        uint8_t *meow = "Placeholder";
+        paintText(main_buffer, CONFIG_FURRYDEX_DISPLAY_WIDTH, CONFIG_FURRYDEX_DISPLAY_HEIGHT, 1, 4, 12, meow, font_8, strlen(meow));
     }
     else
     {

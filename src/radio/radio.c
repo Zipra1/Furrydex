@@ -1,28 +1,65 @@
 #include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gap.h>
+#include <zephyr/bluetooth/assigned_numbers.h>
+#include <zephyr/bluetooth/services/nus.h>
 #include <string.h>
 #include "radio.h"
 #include "../lua_thread.h"
 
 // initialization //
 
-static void bt_ready(int ret)
+static bool advertising_data_has_nus(const uint8_t *ad, size_t ad_len)
 {
-    if (ret)
+    static const uint8_t nus_uuid[] = {BT_UUID_NUS_SRV_VAL};
+    size_t offset = 0;
+
+    while (offset < ad_len)
     {
-        printk("Bluetooth init failed: %d\n", ret);
-        return;
+        uint8_t field_len = ad[offset++];
+        if (field_len == 0)
+        {
+            break;
+        }
+        if ((size_t)field_len > ad_len - offset)
+        {
+            return false;
+        }
+
+        uint8_t type = ad[offset];
+        const uint8_t *field_data = &ad[offset + 1];
+        size_t field_data_len = field_len - 1;
+
+        if (type == BT_DATA_UUID128_SOME || type == BT_DATA_UUID128_ALL)
+        {
+            for (size_t uuid_offset = 0;
+                 uuid_offset + sizeof(nus_uuid) <= field_data_len;
+                 uuid_offset += sizeof(nus_uuid))
+            {
+                if (memcmp(&field_data[uuid_offset], nus_uuid,
+                           sizeof(nus_uuid)) == 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        offset += field_len;
     }
-    printk("Bluetooth initialized\n");
+
+    return false;
 }
 
 int ble_core_init(void)
 {
-    int ret = bt_enable(bt_ready);
+    int ret = bt_enable(NULL);
     if (ret)
     {
         printk("bt_enable failed: %d\n", ret);
+    }
+    else
+    {
+        printk("Bluetooth initialized\n");
     }
     return ret;
 }
@@ -31,10 +68,17 @@ int ble_core_init(void)
 
 static void scan_recv(const struct bt_le_scan_recv_info *info, struct net_buf_simple *buf)
 {
+    bool connectable = (info->adv_props & BT_GAP_ADV_PROP_CONNECTABLE) != 0;
+    if (!advertising_data_has_nus(buf->data, buf->len))
+    {
+        connectable = false;
+    }
+
     struct ble_scan_event ev;
 
     ev.addr = *info->addr;
     ev.rssi = info->rssi;
+    ev.nus_connectable = connectable;
     ev.ad_len = MIN(buf->len, BLE_MAX_AD_LEN);
     memcpy(ev.ad_data, buf->data, ev.ad_len);
 
@@ -115,7 +159,7 @@ void ble_fifo_put(struct ble_scan_event new_item)
         ble_fifo_count++;
     }
     k_spin_unlock(&ble_fifo_lock, key);
-    for (int i = 0; i < BLE_FIFO_LENGTH; i++)
+    for (int i = 0; i < CONFIG_LUA_MAX_THREADS; i++)
     {
         if (atomic_get(&lua_slots[i].ble_fifo_depth) < BLE_FIFO_LENGTH - 1)
         {
